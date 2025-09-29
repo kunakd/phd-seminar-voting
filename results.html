@@ -11,6 +11,7 @@
   .seminar { margin-bottom: 30px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
   .winner { font-weight: bold; color: green; }
   .overall { font-weight: bold; font-size: 1.2em; color: blue; }
+  .votes { font-weight: bold; color: darkorange; margin-bottom: 15px; }
 </style>
 </head>
 <body>
@@ -19,77 +20,92 @@
 <div id="overallWinner"></div>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
-    authDomain: "phd-seminar-voting.firebaseapp.com",
-    projectId: "phd-seminar-voting",
-    storageBucket: "phd-seminar-voting.firebasestorage.app",
-    messagingSenderId: "1042633812969",
-    appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
-    measurementId: "G-2JQDJWPH7L"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
+  authDomain: "phd-seminar-voting.firebaseapp.com",
+  projectId: "phd-seminar-voting",
+  storageBucket: "phd-seminar-voting.firebasestorage.app",
+  messagingSenderId: "1042633812969",
+  appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
+  measurementId: "G-2JQDJWPH7L"
+};
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  const seminars = ["Seminar 1","Seminar 2","Seminar 3","Seminar 4","Seminar 5","Seminar 6"];
-  const resultsDiv = document.getElementById("results");
-  const overallDiv = document.getElementById("overallWinner");
+const seminars = ["Seminar 1","Seminar 2","Seminar 3","Seminar 4","Seminar 5","Seminar 6"];
+const resultsDiv = document.getElementById("results");
+const overallDiv = document.getElementById("overallWinner");
+const totalStudents = 300; // Celkový počet studentů
 
-  // Objekt pro součet bodů napříč všemi semináři
-  let overallTotals = Array(6).fill().map(()=>[0,0,0,0,0]); // 6 seminářů x 5 prezentací
+let overallTotals = Array(6).fill().map(()=>[0,0,0,0,0]); // 6 seminářů x 5 prezentací
+let globalScores = []; // Pro celkového vítěze
 
-  async function calculateTotals() {
-    let globalScores = []; // pro celkového vítěze
+async function calculateTotals() {
+  // Počet hlasujících
+  const snapshotVotes = await db.collection('votes').get();
+  const numberOfVotes = snapshotVotes.size;
+  const votesDiv = document.createElement("p");
+  votesDiv.className = "votes";
+  votesDiv.innerText = `${numberOfVotes} / ${totalStudents} students submitted their votes`;
+  resultsDiv.appendChild(votesDiv);
 
-    for (let sIndex=0; sIndex<seminars.length; sIndex++) {
-      const seminar = seminars[sIndex];
-      const snapshot = await db.collection('votes')
-                               .where('seminar','==',seminar)
-                               .get();
-      let totals = [0,0,0,0,0]; // 5 prezentací
+  for (let sIndex=0; sIndex<seminars.length; sIndex++) {
+    const seminar = seminars[sIndex];
+    const snapshot = await db.collection('votes')
+                             .where('seminar','==',seminar)
+                             .get();
+    let totals = [0,0,0,0,0]; // 5 prezentací
+    let presNames = ["Presentation 1","Presentation 2","Presentation 3","Presentation 4","Presentation 5"];
 
-      snapshot.forEach(doc => {
-        const pres = doc.data().presentations;
-        for (let i=0; i<5; i++) {
-          totals[i] += pres[i].score;
-          overallTotals[sIndex][i] += pres[i].score;
-        }
-      });
+    snapshot.forEach(doc => {
+      const pres = doc.data().presentations;
+      for (let i=0; i<pres.length; i++) {
+        totals[i] += pres[i].score;
+      }
+    });
 
-      // Najdi vítěze semináře
-      let maxScore = Math.max(...totals);
-      let winner = totals.indexOf(maxScore)+1;
-
-      globalScores.push(...totals); // uložíme do celkového hodnocení
-
-      // Vytvoř HTML pro tento seminář
-      let seminarDiv = document.createElement("div");
-      seminarDiv.className = "seminar";
-
-      let html = `<h2>${seminar}</h2>`;
-      totals.forEach((score,index) => {
-        html += `<p>Presentation ${index+1}: ${score} points</p>`;
-      });
-      html += `<p class="winner">Winner: Presentation ${winner} with ${maxScore} points</p>`;
-
-      seminarDiv.innerHTML = html;
-      resultsDiv.appendChild(seminarDiv);
+    // Získej jména prezentací z prvního hlasu
+    if(snapshot.docs.length > 0){
+      presNames = snapshot.docs[0].data().presentations.map(p => p.name);
     }
 
-    // Celkový vítěz napříč všemi semináři
-    let maxOverall = Math.max(...globalScores);
-    let overallIndex = globalScores.indexOf(maxOverall);
+    // Ulož do overallTotals a globalScores
+    for (let i=0; i<totals.length; i++){
+      overallTotals[sIndex][i] = totals[i];
+      globalScores.push(totals[i]);
+    }
 
-    // Seminář a prezentace
-    let seminarNumber = Math.floor(overallIndex / 5) + 1;
-    let presentationNumber = (overallIndex % 5) + 1;
+    // Najdi vítěze semináře
+    let maxScore = Math.max(...totals);
+    let winnerIndex = totals.indexOf(maxScore);
 
-    overallDiv.innerHTML = `<p class="overall">Overall Winner: Seminar ${seminarNumber} - Presentation ${presentationNumber} with ${maxOverall} points</p>`;
+    // Vytvoř HTML pro tento seminář
+    let seminarDiv = document.createElement("div");
+    seminarDiv.className = "seminar";
+
+    let html = `<h2>${seminar}</h2>`;
+    totals.forEach((score,index) => {
+      html += `<p>${presNames[index]}: ${score} points</p>`;
+    });
+    html += `<p class="winner">Winner: ${presNames[winnerIndex]} with ${maxScore} points</p>`;
+
+    seminarDiv.innerHTML = html;
+    resultsDiv.appendChild(seminarDiv);
   }
 
-  calculateTotals();
+  // Celkový vítěz napříč všemi semináři
+  let maxOverall = Math.max(...globalScores);
+  let overallIndex = globalScores.indexOf(maxOverall);
+  let seminarNumber = Math.floor(overallIndex / 5);
+  let presentationNumber = overallIndex % 5;
+
+  overallDiv.innerHTML = `<p class="overall">Overall Winner: ${seminars[seminarNumber]} - ${presNames[presentationNumber]} with ${maxOverall} points</p>`;
+}
+
+calculateTotals();
 </script>
 
 </body>
 </html>
+
