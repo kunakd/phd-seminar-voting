@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PhD Seminar Scores</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  h1 { color: #333; }
+  .seminar { margin-bottom: 30px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+  .winner { font-weight: bold; color: green; }
+  .overall { font-weight: bold; font-size: 1.2em; color: blue; }
+</style>
+</head>
+<body>
+<h1>PhD Seminar Evaluation Results</h1>
+<div id="results"></div>
+<div id="overallWinner"></div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
+    authDomain: "phd-seminar-voting.firebaseapp.com",
+    projectId: "phd-seminar-voting",
+    storageBucket: "phd-seminar-voting.firebasestorage.app",
+    messagingSenderId: "1042633812969",
+    appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
+    measurementId: "G-2JQDJWPH7L"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const seminars = ["Seminar 1","Seminar 2","Seminar 3","Seminar 4","Seminar 5","Seminar 6"];
+  const resultsDiv = document.getElementById("results");
+  const overallDiv = document.getElementById("overallWinner");
+
+  // Objekt pro součet bodů napříč všemi semináři
+  let overallTotals = Array(6).fill().map(()=>[0,0,0,0,0]); // 6 seminářů x 5 prezentací
+
+  async function calculateTotals() {
+    let globalScores = []; // pro celkového vítěze
+
+    for (let sIndex=0; sIndex<seminars.length; sIndex++) {
+      const seminar = seminars[sIndex];
+      const snapshot = await db.collection('votes')
+                               .where('seminar','==',seminar)
+                               .get();
+      let totals = [0,0,0,0,0]; // 5 prezentací
+
+      snapshot.forEach(doc => {
+        const pres = doc.data().presentations;
+        for (let i=0; i<5; i++) {
+          totals[i] += pres[i].score;
+          overallTotals[sIndex][i] += pres[i].score;
+        }
+      });
+
+      // Najdi vítěze semináře
+      let maxScore = Math.max(...totals);
+      let winner = totals.indexOf(maxScore)+1;
+
+      globalScores.push(...totals); // uložíme do celkového hodnocení
+
+      // Vytvoř HTML pro tento seminář
+      let seminarDiv = document.createElement("div");
+      seminarDiv.className = "seminar";
+
+      let html = `<h2>${seminar}</h2>`;
+      totals.forEach((score,index) => {
+        html += `<p>Presentation ${index+1}: ${score} points</p>`;
+      });
+      html += `<p class="winner">Winner: Presentation ${winner} with ${maxScore} points</p>`;
+
+      seminarDiv.innerHTML = html;
+      resultsDiv.appendChild(seminarDiv);
+    }
+
+    // Celkový vítěz napříč všemi semináři
+    let maxOverall = Math.max(...globalScores);
+    let overallIndex = globalScores.indexOf(maxOverall);
+
+    // Seminář a prezentace
+    let seminarNumber = Math.floor(overallIndex / 5) + 1;
+    let presentationNumber = (overallIndex % 5) + 1;
+
+    overallDiv.innerHTML = `<p class="overall">Overall Winner: Seminar ${seminarNumber} - Presentation ${presentationNumber} with ${maxOverall} points</p>`;
+  }
+
+  calculateTotals();
+</script>
+
+</body>
+</html>
