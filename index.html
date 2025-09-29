@@ -19,9 +19,7 @@ button { font-size:16px; margin-top:20px; }
   padding: 15px;
   margin-top: 20px;
 }
-.presentation-block h3 {
-  margin-top: 0;
-}
+.presentation-block h3 { margin-top: 0; }
 </style>
 </head>
 <body>
@@ -29,8 +27,8 @@ button { font-size:16px; margin-top:20px; }
 <h1>PhD Seminar Evaluation</h1>
 
 <form id="voteForm">
-  <label for="studentId">Student ID</label>
-  <input type="text" id="studentId" required>
+  <label for="participantId">Participant ID</label>
+  <input type="text" id="participantId" required>
 
   <label for="seminar">Select seminar</label>
   <select id="seminar" required>
@@ -51,7 +49,7 @@ button { font-size:16px; margin-top:20px; }
 <div id="message"></div>
 
 <script>
-// 🔥 Your firebaseConfig
+// --- Firebase configuration ---
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -65,34 +63,58 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- generate 5 presentation rating blocks ---
+// --- Předdefinovaná jména prezentujících ---
+const presentationsBySeminar = {
+  "Seminar 1": ["Alice", "Bob", "Charlie", "David", "Eva"],
+  "Seminar 2": ["Frank", "Grace", "Hannah", "Ian", "Julia"],
+  "Seminar 3": ["Kevin", "Laura", "Mike", "Nina", "Oscar"],
+  "Seminar 4": ["Paul", "Quinn", "Rachel", "Steve", "Tina"],
+  "Seminar 5": ["Uma", "Victor", "Wendy", "Xander", "Yara"],
+  "Seminar 6": ["Zane", "Amy", "Brian", "Clara", "Derek"]
+};
+
 const presDiv = document.getElementById("presentations");
-for (let i = 1; i <= 5; i++) {
-  const block = document.createElement("div");
-  block.className = "presentation-block";
-  block.innerHTML = `
-    <h3>Presentation ${i}</h3>
-    <label for="pres${i}">Score (1 = worst, 10 = best)</label>
-    <select id="pres${i}" required>
-      <option value="">--Select--</option>
-      ${Array.from({length:10}, (_,j)=>`<option value="${j+1}">${j+1}</option>`).join("")}
-    </select>
-    <label for="comment${i}">What should be improved?</label>
-    <textarea id="comment${i}" rows="3" required></textarea>
-  `;
-  presDiv.appendChild(block);
+const seminarSelect = document.getElementById("seminar");
+
+// --- Funkce pro vykreslení prezentací podle zvoleného semináře ---
+function renderPresentations(seminar) {
+  presDiv.innerHTML = ''; // vyčisti staré bloky
+  const presNames = presentationsBySeminar[seminar] || ["Presentation 1","Presentation 2","Presentation 3","Presentation 4","Presentation 5"];
+  
+  presNames.forEach((name, i) => {
+    const block = document.createElement("div");
+    block.className = "presentation-block";
+    block.innerHTML = `
+      <h3>${name}</h3>
+      <label for="pres${i+1}">Score (1 = worst, 10 = best)</label>
+      <select id="pres${i+1}" required>
+        <option value="">--Select--</option>
+        ${Array.from({length:10}, (_,j)=>`<option value="${j+1}">${j+1}</option>`).join("")}
+      </select>
+      <label for="comment${i+1}">What should be improved?</label>
+      <textarea id="comment${i+1}" rows="3" required></textarea>
+    `;
+    presDiv.appendChild(block);
+  });
 }
 
-// --- submission ---
+// --- Při změně semináře překresli bloky ---
+seminarSelect.addEventListener('change', e => {
+  renderPresentations(e.target.value);
+});
+
+// --- Form submission ---
 const form = document.getElementById('voteForm');
 const message = document.getElementById('message');
 
-form.addEventListener('submit', async e=>{
+form.addEventListener('submit', async e => {
   e.preventDefault();
 
-  const studentId = document.getElementById('studentId').value.trim();
+  const participantId = document.getElementById('participantId').value.trim();
   const seminar = document.getElementById('seminar').value;
   let presentations = [];
+
+  const presNames = presentationsBySeminar[seminar] || ["Presentation 1","Presentation 2","Presentation 3","Presentation 4","Presentation 5"];
 
   for(let i=1;i<=5;i++){
     const score = document.getElementById(`pres${i}`).value;
@@ -102,20 +124,17 @@ form.addEventListener('submit', async e=>{
       message.className = 'error';
       return;
     }
-    presentations.push({
-      score: parseInt(score),
-      comment
-    });
+    presentations.push({ name: presNames[i-1], score: parseInt(score), comment });
   }
 
-  if(!studentId || !seminar){
+  if(!participantId || !seminar){
     message.textContent = 'Please fill in all required fields.';
     message.className = 'error';
     return;
   }
 
   try{
-    const docRef = db.collection('votes').doc(`${studentId}_${seminar}`);
+    const docRef = db.collection('votes').doc(`${participantId}_${seminar}`);
     const doc = await docRef.get();
     if(doc.exists){
       message.textContent = 'You have already submitted an evaluation for this seminar.';
@@ -124,7 +143,7 @@ form.addEventListener('submit', async e=>{
     }
 
     await docRef.set({
-      studentId,
+      participantId,
       seminar,
       presentations,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
@@ -133,6 +152,7 @@ form.addEventListener('submit', async e=>{
     message.textContent = 'Evaluation submitted successfully. Thank you!';
     message.className = 'success';
     form.reset();
+    presDiv.innerHTML = '';
   } catch(err){
     console.error(err);
     message.textContent = 'An error occurred while submitting.';
