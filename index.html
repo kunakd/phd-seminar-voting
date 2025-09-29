@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PhD Seminar Evaluation</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+body { font-family: Arial; max-width: 800px; margin: 30px auto; }
+label { display:block; margin-top:15px; font-weight:bold; }
+input, select, textarea, button { width:100%; padding:8px; margin-top:5px; }
+textarea { resize: vertical; }
+button { font-size:16px; margin-top:20px; }
+.success { color: green; margin-top:20px; }
+.error { color: red; margin-top:20px; }
+.presentation-block {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+}
+.presentation-block h3 {
+  margin-top: 0;
+}
+</style>
+</head>
+<body>
+
+<h1>PhD Seminar Evaluation</h1>
+
+<form id="voteForm">
+  <label for="studentId">Student ID</label>
+  <input type="text" id="studentId" required>
+
+  <label for="seminar">Select seminar</label>
+  <select id="seminar" required>
+    <option value="">--Select--</option>
+    <option value="Seminar 1">Seminar 1</option>
+    <option value="Seminar 2">Seminar 2</option>
+    <option value="Seminar 3">Seminar 3</option>
+    <option value="Seminar 4">Seminar 4</option>
+    <option value="Seminar 5">Seminar 5</option>
+    <option value="Seminar 6">Seminar 6</option>
+  </select>
+
+  <div id="presentations"></div>
+
+  <button type="submit">Submit evaluation</button>
+</form>
+
+<div id="message"></div>
+
+<script>
+// 🔥 Your firebaseConfig
+const firebaseConfig = {
+  apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
+  authDomain: "phd-seminar-voting.firebaseapp.com",
+  projectId: "phd-seminar-voting",
+  storageBucket: "phd-seminar-voting.firebasestorage.app",
+  messagingSenderId: "1042633812969",
+  appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
+  measurementId: "G-2JQDJWPH7L"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// --- generate 5 presentation rating blocks ---
+const presDiv = document.getElementById("presentations");
+for (let i = 1; i <= 5; i++) {
+  const block = document.createElement("div");
+  block.className = "presentation-block";
+  block.innerHTML = `
+    <h3>Presentation ${i}</h3>
+    <label for="pres${i}">Score (1 = worst, 10 = best)</label>
+    <select id="pres${i}" required>
+      <option value="">--Select--</option>
+      ${Array.from({length:10}, (_,j)=>`<option value="${j+1}">${j+1}</option>`).join("")}
+    </select>
+    <label for="comment${i}">What should be improved?</label>
+    <textarea id="comment${i}" rows="3" required></textarea>
+  `;
+  presDiv.appendChild(block);
+}
+
+// --- submission ---
+const form = document.getElementById('voteForm');
+const message = document.getElementById('message');
+
+form.addEventListener('submit', async e=>{
+  e.preventDefault();
+
+  const studentId = document.getElementById('studentId').value.trim();
+  const seminar = document.getElementById('seminar').value;
+  let presentations = [];
+
+  for(let i=1;i<=5;i++){
+    const score = document.getElementById(`pres${i}`).value;
+    const comment = document.getElementById(`comment${i}`).value.trim();
+    if(!score || !comment){
+      message.textContent = 'Please fill in all fields for each presentation.';
+      message.className = 'error';
+      return;
+    }
+    presentations.push({
+      score: parseInt(score),
+      comment
+    });
+  }
+
+  if(!studentId || !seminar){
+    message.textContent = 'Please fill in all required fields.';
+    message.className = 'error';
+    return;
+  }
+
+  try{
+    const docRef = db.collection('votes').doc(`${studentId}_${seminar}`);
+    const doc = await docRef.get();
+    if(doc.exists){
+      message.textContent = 'You have already submitted an evaluation for this seminar.';
+      message.className = 'error';
+      return;
+    }
+
+    await docRef.set({
+      studentId,
+      seminar,
+      presentations,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    message.textContent = 'Evaluation submitted successfully. Thank you!';
+    message.className = 'success';
+    form.reset();
+  } catch(err){
+    console.error(err);
+    message.textContent = 'An error occurred while submitting.';
+    message.className = 'error';
+  }
+});
+</script>
+
+</body>
+</html>
+
