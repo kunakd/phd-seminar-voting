@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PhD Voting App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+  h1 { color: #333; }
+  p { font-size: 1.2em; }
+</style>
+<script>
+window.onload = function() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+
+  if (/android/i.test(ua)) {
+    // Přesměrování na Google Play
+    window.location.href = "https://play.google.com/store/apps/details?id=com.tvojeaplikace";
+  } else if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+    // Přesměrování na App Store
+    window.location.href = "https://apps.apple.com/app/id123456789";
+  } else {
+    // Desktop fallback
+    document.body.innerHTML = `
+      <h1>PhD Voting App</h1>
+      <p>Use your mobile device to scan the QR code and open the app in the store.</p>
+    `;
+  }
+};
+</script>
+</head>
+<body>
+</body>
+</html>
+
+
+
