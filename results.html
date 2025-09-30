@@ -2,25 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PhD Seminar Scores</title>
+<title>PhD Seminar Results</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; text-align: center; }
-  h1 { color: #333; }
-  .seminar { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; text-align: left; }
-  .winner { font-weight: bold; color: green; }
-  .overall { font-weight: bold; font-size: 1.5em; color: blue; margin-top: 20px; }
-  .overall img { width: 200px; border-radius: 10px; margin-top: 10px; }
-  .congrats { font-size: 2em; font-weight: bold; color: darkorange; margin-top: 10px; animation: pulse 1s infinite; display: none; }
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-  }
-  .votes { font-weight: bold; color: darkorange; margin-bottom: 15px; text-align: left; }
-  p { margin: 4px 0; }
+body { font-family: Arial; margin: 20px; max-width: 900px; text-align: center; }
+h1 { color: #333; }
+.seminar { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; text-align: left; }
+.winner { font-weight: bold; color: green; }
+.overall { font-weight: bold; font-size: 1.5em; color: blue; margin-top: 20px; }
+.overall img { width: 200px; border-radius: 10px; margin-top: 10px; }
+.congrats { font-size: 2em; font-weight: bold; color: darkorange; margin-top: 10px; animation: pulse 1s infinite; }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+.votes { font-weight: bold; color: darkorange; margin-bottom: 15px; text-align: left; }
+p { margin: 4px 0; }
 </style>
 </head>
 <body>
@@ -42,33 +38,38 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// --- Předdefinovaná jména prezentujících ---
 const presentationsBySeminar = {
   "Seminar 1": ["Alice", "Bob", "Charlie", "David", "Eva"],
   "Seminar 2": ["Frank", "Grace", "Hannah", "Ian", "Julia"],
   "Seminar 3": ["Kevin", "Laura", "Mike", "Nina", "Oscar"],
   "Seminar 4": ["Paul", "Quinn", "Rachel", "Steve", "Tina"],
   "Seminar 5": ["Uma", "Victor", "Wendy", "Xander", "Yara"],
-  "Seminar 6": ["Zane", "Amy", "Brian", "Clara", "Derek"]
+  "Seminar 6": ["Zane", "Amy", "Ondřej Hladík", "Anna-Marie Dušková", "Dominik Kunák"]
 };
 
 const seminars = Object.keys(presentationsBySeminar);
 const resultsDiv = document.getElementById("results");
 const overallDiv = document.getElementById("overallWinner");
 
-let votingClosed = false;
-let confettiLaunched = false;
-
-function renderResults(snapshotVotes) {
+async function displayResults() {
   resultsDiv.innerHTML = '';
   overallDiv.innerHTML = '';
 
+  // --- Check votingClosed ---
+  const settingsDoc = await db.collection('settings').doc('controls').get();
+  const votingClosed = settingsDoc.exists && settingsDoc.data().votingClosed === true;
+
+  const snapshotVotes = await db.collection('votes').get();
   const numberOfVotes = snapshotVotes.size;
+
   const votesDiv = document.createElement("p");
   votesDiv.className = "votes";
   votesDiv.innerText = `${numberOfVotes} participants of the seminar submitted their votes`;
   resultsDiv.appendChild(votesDiv);
 
   let globalScores = [];
+  let presNamesGlobal = [];
 
   seminars.forEach(seminar => {
     const seminarVotes = snapshotVotes.docs.filter(doc => doc.data().seminar === seminar);
@@ -76,70 +77,50 @@ function renderResults(snapshotVotes) {
     let totals = Array(presNames.length).fill(0);
 
     seminarVotes.forEach(doc => {
-      doc.data().presentations.forEach((p, i) => {
+      doc.data().presentations.forEach((p,i)=>{
         totals[i] += p.score;
       });
     });
 
-    const numberOfVoters = seminarVotes.length || 1;
-    let averages = totals.map(t => t / numberOfVoters);
-
-    let results = presNames.map((name, i) => ({
-      name: name,
-      avg: averages[i]
-    }));
-
-    results.sort((a, b) => b.avg - a.avg);
-
-    results.forEach(r => {
-      globalScores.push({ seminar: seminar, name: r.name, avg: r.avg });
-    });
+    const avgTotals = totals.map(t => (numberOfVotes>0 ? (t/numberOfVotes).toFixed(2) : 0));
+    const ranked = avgTotals.map((score,index)=>({score: parseFloat(score), index}))
+                           .sort((a,b)=>b.score-a.score);
 
     let seminarDiv = document.createElement("div");
     seminarDiv.className = "seminar";
 
-    let html = `<h2>${seminar} (voters: ${numberOfVoters})</h2>`;
-    results.forEach((r, i) => {
-      html += `<p>${i + 1}. ${r.name}: ${r.avg.toFixed(2)} points</p>`;
+    let html = `<h2>${seminar}</h2>`;
+    ranked.forEach((r, pos)=>{
+      html += `<p>${pos+1}. ${presNames[r.index]}: ${r.score} points</p>`;
     });
 
-    html += `<p class="winner">Winner: ${results[0].name} with ${results[0].avg.toFixed(2)} points</p>`;
+    const winnerIndex = ranked[0].index;
+    html += `<p class="winner">Winner: ${presNames[winnerIndex]} with ${avgTotals[winnerIndex]} points</p>`;
     seminarDiv.innerHTML = html;
     resultsDiv.appendChild(seminarDiv);
+
+    globalScores.push(...avgTotals.map((s,i)=>({score: s, seminar, index: i})));
+    presNamesGlobal.push(...presNames);
   });
 
-  globalScores.sort((a, b) => b.avg - a.avg);
-  const overallWinner = globalScores[0];
+  if(votingClosed && globalScores.length>0){
+    const maxOverall = Math.max(...globalScores.map(g=>g.score));
+    const overallWinner = globalScores.find(g=>g.score===maxOverall);
+    const overallWinnerName = presentationsBySeminar[overallWinner.seminar][overallWinner.index];
 
-  overallDiv.innerHTML = `
-    <div class="overall">
-      🏆 Overall Winner: ${overallWinner.name} (${overallWinner.seminar}) with ${overallWinner.avg.toFixed(2)} points
-      <div id="congrats" class="congrats">🎉 Congratulations!!! 🎉</div>
-      <img src="images/${overallWinner.name}.jpg" alt="${overallWinner.name}">
-    </div>
-  `;
+    overallDiv.innerHTML = `
+      <div class="overall">
+        🏆 Overall Winner: ${overallWinnerName} (${overallWinner.seminar}) with ${maxOverall} points
+        <div class="congrats">🎉 Congratulations!!! 🎉</div>
+        <img src="images/${overallWinnerName}.jpg" alt="${overallWinnerName}">
+      </div>
+    `;
 
-  // Spustíme konfety a gratulaci pouze, pokud je hlasování uzavřeno
-  if (votingClosed && !confettiLaunched) {
-    document.getElementById("congrats").style.display = "block";
-    confetti({
-      particleCount: 200,
-      spread: 120,
-      origin: { y: 0.6 }
-    });
-    confettiLaunched = true;
+    confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
   }
 }
 
-// sledujeme hlasy
-db.collection('votes').onSnapshot(renderResults);
-
-// sledujeme nastavení (uzavření hlasování)
-db.collection('settings').doc('controls').onSnapshot(doc => {
-  if (doc.exists && doc.data().votingClosed === true) {
-    votingClosed = true;
-  }
-});
+displayResults();
 </script>
 </body>
 </html>

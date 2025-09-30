@@ -78,7 +78,7 @@ const seminarSelect = document.getElementById("seminar");
 
 // --- Funkce pro vykreslení prezentací podle zvoleného semináře ---
 function renderPresentations(seminar) {
-  presDiv.innerHTML = ''; // vyčisti staré bloky
+  presDiv.innerHTML = '';
   const presNames = presentationsBySeminar[seminar] || ["Presentation 1","Presentation 2","Presentation 3","Presentation 4","Presentation 5"];
   
   presNames.forEach((name, i) => {
@@ -153,6 +153,12 @@ form.addEventListener('submit', async e => {
     message.className = 'success';
     form.reset();
     presDiv.innerHTML = '';
+
+    // --- Přesměrování na results.html po 1,5 sekundě ---
+    setTimeout(() => {
+      window.location.href = 'results.html';
+    }, 1500);
+
   } catch(err){
     console.error(err);
     message.textContent = 'An error occurred while submitting.';
