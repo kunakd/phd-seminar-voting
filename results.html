@@ -5,13 +5,21 @@
 <title>PhD Seminar Scores</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; }
+  body { font-family: Arial, sans-serif; margin: 20px; max-width: 900px; text-align: center; }
   h1 { color: #333; }
-  .seminar { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+  .seminar { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; text-align: left; }
   .winner { font-weight: bold; color: green; }
-  .overall { font-weight: bold; font-size: 1.2em; color: blue; }
-  .votes { font-weight: bold; color: darkorange; margin-bottom: 15px; }
+  .overall { font-weight: bold; font-size: 1.5em; color: blue; margin-top: 20px; }
+  .overall img { width: 200px; border-radius: 10px; margin-top: 10px; }
+  .congrats { font-size: 2em; font-weight: bold; color: darkorange; margin-top: 10px; animation: pulse 1s infinite; display: none; }
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  .votes { font-weight: bold; color: darkorange; margin-bottom: 15px; text-align: left; }
   p { margin: 4px 0; }
 </style>
 </head>
@@ -34,23 +42,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Předdefinovaná jména prezentujících
 const presentationsBySeminar = {
   "Seminar 1": ["Alice", "Bob", "Charlie", "David", "Eva"],
   "Seminar 2": ["Frank", "Grace", "Hannah", "Ian", "Julia"],
   "Seminar 3": ["Kevin", "Laura", "Mike", "Nina", "Oscar"],
   "Seminar 4": ["Paul", "Quinn", "Rachel", "Steve", "Tina"],
   "Seminar 5": ["Uma", "Victor", "Wendy", "Xander", "Yara"],
-  "Seminar 6": ["Zane", "Amy", "Ondřej Hladík", "Anna-Marie Dušková", "Dominik Kunák"]
+  "Seminar 6": ["Zane", "Amy", "Brian", "Clara", "Derek"]
 };
 
 const seminars = Object.keys(presentationsBySeminar);
 const resultsDiv = document.getElementById("results");
 const overallDiv = document.getElementById("overallWinner");
 
-// Sleduj všechny hlasy v reálném čase
-db.collection('votes').onSnapshot(snapshotVotes => {
+let votingClosed = false;
+let confettiLaunched = false;
+
+function renderResults(snapshotVotes) {
   resultsDiv.innerHTML = '';
+  overallDiv.innerHTML = '';
 
   const numberOfVotes = snapshotVotes.size;
   const votesDiv = document.createElement("p");
@@ -71,33 +81,64 @@ db.collection('votes').onSnapshot(snapshotVotes => {
       });
     });
 
-    // Najdi vítěze semináře
-    const maxScore = Math.max(...totals);
-    const winnerIndex = totals.indexOf(maxScore);
+    const numberOfVoters = seminarVotes.length || 1;
+    let averages = totals.map(t => t / numberOfVoters);
 
-    // Přidat body do globálního seznamu
-    globalScores.push(...totals);
+    let results = presNames.map((name, i) => ({
+      name: name,
+      avg: averages[i]
+    }));
 
-    // Vytvořit HTML pro tento seminář
+    results.sort((a, b) => b.avg - a.avg);
+
+    results.forEach(r => {
+      globalScores.push({ seminar: seminar, name: r.name, avg: r.avg });
+    });
+
     let seminarDiv = document.createElement("div");
     seminarDiv.className = "seminar";
 
-    let html = `<h2>${seminar}</h2>`;
-    totals.forEach((score, i) => {
-      html += `<p>${presNames[i]}: ${score} points</p>`;
+    let html = `<h2>${seminar} (voters: ${numberOfVoters})</h2>`;
+    results.forEach((r, i) => {
+      html += `<p>${i + 1}. ${r.name}: ${r.avg.toFixed(2)} points</p>`;
     });
-    html += `<p class="winner">Winner: ${presNames[winnerIndex]} with ${maxScore} points</p>`;
+
+    html += `<p class="winner">Winner: ${results[0].name} with ${results[0].avg.toFixed(2)} points</p>`;
     seminarDiv.innerHTML = html;
     resultsDiv.appendChild(seminarDiv);
   });
 
-  // Celkový vítěz napříč všemi semináři
-  const maxOverall = Math.max(...globalScores);
-  const overallIndex = globalScores.indexOf(maxOverall);
-  const seminarNumber = Math.floor(overallIndex / 5);
-  const presentationNumber = overallIndex % 5;
+  globalScores.sort((a, b) => b.avg - a.avg);
+  const overallWinner = globalScores[0];
 
-  overallDiv.innerHTML = `<p class="overall">Overall Winner: ${seminars[seminarNumber]} - ${presentationsBySeminar[seminars[seminarNumber]][presentationNumber]} with ${maxOverall} points</p>`;
+  overallDiv.innerHTML = `
+    <div class="overall">
+      🏆 Overall Winner: ${overallWinner.name} (${overallWinner.seminar}) with ${overallWinner.avg.toFixed(2)} points
+      <div id="congrats" class="congrats">🎉 Congratulations!!! 🎉</div>
+      <img src="images/${overallWinner.name}.jpg" alt="${overallWinner.name}">
+    </div>
+  `;
+
+  // Spustíme konfety a gratulaci pouze, pokud je hlasování uzavřeno
+  if (votingClosed && !confettiLaunched) {
+    document.getElementById("congrats").style.display = "block";
+    confetti({
+      particleCount: 200,
+      spread: 120,
+      origin: { y: 0.6 }
+    });
+    confettiLaunched = true;
+  }
+}
+
+// sledujeme hlasy
+db.collection('votes').onSnapshot(renderResults);
+
+// sledujeme nastavení (uzavření hlasování)
+db.collection('settings').doc('controls').onSnapshot(doc => {
+  if (doc.exists && doc.data().votingClosed === true) {
+    votingClosed = true;
+  }
 });
 </script>
 </body>

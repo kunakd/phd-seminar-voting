@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin – Voting Control</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; text-align: center; }
+  h1 { margin-bottom: 20px; }
+  button { padding: 12px 20px; margin: 10px; font-size: 16px; border-radius: 8px; cursor: pointer; }
+  .open { background: #4CAF50; color: white; border: none; }
+  .close { background: #f44336; color: white; border: none; }
+  .status { margin-top: 20px; font-weight: bold; font-size: 18px; }
+  #login { margin-top: 50px; }
+  input { padding: 10px; font-size: 16px; }
+</style>
+</head>
+<body>
+<div id="login">
+  <h1>Admin Login</h1>
+  <p>Please enter the password:</p>
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="checkPassword()">Login</button>
+  <p id="loginStatus" style="color:red;"></p>
+</div>
+
+<div id="panel" style="display:none;">
+  <h1>Voting Control Panel</h1>
+  <button class="open" onclick="setVoting(false)">🟢 Open Voting</button>
+  <button class="close" onclick="setVoting(true)">🔴 Close Voting</button>
+  <div id="status" class="status">Loading status...</div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
+  authDomain: "phd-seminar-voting.firebaseapp.com",
+  projectId: "phd-seminar-voting",
+  storageBucket: "phd-seminar-voting.firebasestorage.app",
+  messagingSenderId: "1042633812969",
+  appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
+  measurementId: "G-2JQDJWPH7L"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const statusDiv = document.getElementById("status");
+
+// 🔑 nastavení hesla – změň si ho!
+const ADMIN_PASSWORD = "seminar2025";
+
+// ověření hesla
+function checkPassword() {
+  const entered = document.getElementById("password").value;
+  if (entered === ADMIN_PASSWORD) {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+  } else {
+    document.getElementById("loginStatus").innerText = "❌ Wrong password!";
+  }
+}
+
+// funkce na změnu hlasování
+function setVoting(closed) {
+  db.collection("settings").doc("controls").set({
+    votingClosed: closed
+  })
+  .then(() => {
+    statusDiv.innerText = closed ? "❌ Voting is CLOSED" : "✅ Voting is OPEN";
+  })
+  .catch(err => {
+    console.error("Error updating:", err);
+    statusDiv.innerText = "⚠️ Error updating voting status";
+  });
+}
+
+// sledujeme změny v reálném čase
+db.collection("settings").doc("controls").onSnapshot(doc => {
+  if (doc.exists) {
+    const closed = doc.data().votingClosed;
+    statusDiv.innerText = closed ? "❌ Voting is CLOSED" : "✅ Voting is OPEN";
+  } else {
+    statusDiv.innerText = "⚠️ Controls document does not exist";
+  }
+});
+</script>
+</body>
+</html>
+
+
+
