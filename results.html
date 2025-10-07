@@ -11,10 +11,6 @@ body { font-family: Arial; margin: 20px; max-width: 900px; text-align: center; }
 h1 { color: #333; }
 .seminar { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; text-align: left; }
 .winner { font-weight: bold; color: green; }
-.overall { font-weight: bold; font-size: 1.5em; color: blue; margin-top: 20px; }
-.overall img { width: 200px; border-radius: 10px; margin-top: 10px; }
-.congrats { font-size: 2em; font-weight: bold; color: darkorange; margin-top: 10px; animation: pulse 1s infinite; }
-@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 .votes { font-weight: bold; color: darkorange; margin-bottom: 15px; text-align: left; }
 p { margin: 4px 0; }
 </style>
@@ -22,7 +18,6 @@ p { margin: 4px 0; }
 <body>
 <h1>PhD Seminar Evaluation Results</h1>
 <div id="results"></div>
-<div id="overallWinner"></div>
 
 <script>
 const firebaseConfig = {
@@ -38,27 +33,21 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- Předdefinovaná jména prezentujících ---
+// --- Presenters per seminar ---
 const presentationsBySeminar = {
-  "Seminar 1": ["Alice", "Bob", "Charlie", "David", "Eva"],
-  "Seminar 2": ["Frank", "Grace", "Hannah", "Ian", "Julia"],
-  "Seminar 3": ["Kevin", "Laura", "Mike", "Nina", "Oscar"],
-  "Seminar 4": ["Paul", "Quinn", "Rachel", "Steve", "Tina"],
-  "Seminar 5": ["Uma", "Victor", "Wendy", "Xander", "Yara"],
-  "Seminar 6": ["Zane", "Amy", "Ondřej Hladík", "Anna-Marie Dušková", "Dominik Kunák"]
+  "Seminar 1": ["Marko Boskovic", "Pratibha Choudhari", "Samanta Rožánková", "Yu-Wei Tu"],
+  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Büşra Buse Tütüncü", "Botond Bolgár"],
+  "Seminar 3": ["Najam Ul Sahar", "Jialu Li", "Pipatpon Raksapon", "Andrea Vopálenská"],
+  "Seminar 4": ["Filip Trajhan", "Donna Martínez Lopéz", "Pallavi Halkarni", "Ondřej Daněk"],
+  "Seminar 5": ["Ondřej Hladík", "Alicia León Rodríguez", "Jyotpreet Kaur", "Jakub Krištof", "Nidhi Sinha"],
+  "Seminar 6": ["Anna-Marie Dušková", "Lucie Černá", "Shubham Bhatt", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
 const seminars = Object.keys(presentationsBySeminar);
 const resultsDiv = document.getElementById("results");
-const overallDiv = document.getElementById("overallWinner");
 
 async function displayResults() {
   resultsDiv.innerHTML = '';
-  overallDiv.innerHTML = '';
-
-  // --- Check votingClosed ---
-  const settingsDoc = await db.collection('settings').doc('controls').get();
-  const votingClosed = settingsDoc.exists && settingsDoc.data().votingClosed === true;
 
   const snapshotVotes = await db.collection('votes').get();
   const numberOfVotes = snapshotVotes.size;
@@ -67,9 +56,6 @@ async function displayResults() {
   votesDiv.className = "votes";
   votesDiv.innerText = `${numberOfVotes} participants of the seminar submitted their votes`;
   resultsDiv.appendChild(votesDiv);
-
-  let globalScores = [];
-  let presNamesGlobal = [];
 
   seminars.forEach(seminar => {
     const seminarVotes = snapshotVotes.docs.filter(doc => doc.data().seminar === seminar);
@@ -82,7 +68,7 @@ async function displayResults() {
       });
     });
 
-    const avgTotals = totals.map(t => (numberOfVotes>0 ? (t/numberOfVotes).toFixed(2) : 0));
+    const avgTotals = totals.map(t => (seminarVotes.length>0 ? (t/seminarVotes.length).toFixed(2) : 0));
     const ranked = avgTotals.map((score,index)=>({score: parseFloat(score), index}))
                            .sort((a,b)=>b.score-a.score);
 
@@ -94,35 +80,20 @@ async function displayResults() {
       html += `<p>${pos+1}. ${presNames[r.index]}: ${r.score} points</p>`;
     });
 
-    const winnerIndex = ranked[0].index;
+    const winnerIndex = ranked[0]?.index ?? 0;
     html += `<p class="winner">Winner: ${presNames[winnerIndex]} with ${avgTotals[winnerIndex]} points</p>`;
     seminarDiv.innerHTML = html;
     resultsDiv.appendChild(seminarDiv);
 
-    globalScores.push(...avgTotals.map((s,i)=>({score: s, seminar, index: i})));
-    presNamesGlobal.push(...presNames);
+    // --- Launch confetti for this seminar ---
+    confetti({ particleCount: 100, spread: 120, origin: { y: 0.6 } });
   });
-
-  if(votingClosed && globalScores.length>0){
-    const maxOverall = Math.max(...globalScores.map(g=>g.score));
-    const overallWinner = globalScores.find(g=>g.score===maxOverall);
-    const overallWinnerName = presentationsBySeminar[overallWinner.seminar][overallWinner.index];
-
-    overallDiv.innerHTML = `
-      <div class="overall">
-        🏆 Overall Winner: ${overallWinnerName} (${overallWinner.seminar}) with ${maxOverall} points
-        <div class="congrats">🎉 Congratulations!!! 🎉</div>
-        <img src="images/${overallWinnerName}.jpg" alt="${overallWinnerName}">
-      </div>
-    `;
-
-    confetti({ particleCount: 200, spread: 120, origin: { y: 0.6 } });
-  }
 }
 
 displayResults();
 </script>
 </body>
 </html>
+
 
 

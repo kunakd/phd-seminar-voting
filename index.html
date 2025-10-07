@@ -63,24 +63,23 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- Předdefinovaná jména prezentujících ---
+// --- Predefined presenters per seminar ---
 const presentationsBySeminar = {
-  "Seminar 1": ["Alice", "Bob", "Charlie", "David", "Eva"],
-  "Seminar 2": ["Frank", "Grace", "Hannah", "Ian", "Julia"],
-  "Seminar 3": ["Kevin", "Laura", "Mike", "Nina", "Oscar"],
-  "Seminar 4": ["Paul", "Quinn", "Rachel", "Steve", "Tina"],
-  "Seminar 5": ["Uma", "Victor", "Wendy", "Xander", "Yara"],
-  "Seminar 6": ["Zane", "Amy", "Ondřej Hladík", "Anna-Marie Dušková", "Dominik Kunák"]
+  "Seminar 1": ["Marko Boskovic", "Pratibha Choudhari", "Samanta Rožánková", "Yu-Wei Tu"],
+  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Büşra Buse Tütüncü", "Botond Bolgár"],
+  "Seminar 3": ["Najam Ul Sahar", "Jialu Li", "Pipatpon Raksapon", "Andrea Vopálenská"],
+  "Seminar 4": ["Filip Trajhan", "Donna Martínez Lopéz", "Pallavi Halkarni", "Ondřej Daněk"],
+  "Seminar 5": ["Ondřej Hladík", "Alicia León Rodríguez", "Jyotpreet Kaur", "Jakub Krištof", "Nidhi Sinha"],
+  "Seminar 6": ["Anna-Marie Dušková", "Lucie Černá", "Shubham Bhatt", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
 const presDiv = document.getElementById("presentations");
 const seminarSelect = document.getElementById("seminar");
 
-// --- Funkce pro vykreslení prezentací podle zvoleného semináře ---
+// --- Render presentation blocks dynamically ---
 function renderPresentations(seminar) {
   presDiv.innerHTML = '';
-  const presNames = presentationsBySeminar[seminar] || ["Presentation 1","Presentation 2","Presentation 3","Presentation 4","Presentation 5"];
-  
+  const presNames = presentationsBySeminar[seminar] || [];
   presNames.forEach((name, i) => {
     const block = document.createElement("div");
     block.className = "presentation-block";
@@ -98,7 +97,7 @@ function renderPresentations(seminar) {
   });
 }
 
-// --- Při změně semináře překresli bloky ---
+// --- Update presentation blocks on seminar change ---
 seminarSelect.addEventListener('change', e => {
   renderPresentations(e.target.value);
 });
@@ -112,31 +111,31 @@ form.addEventListener('submit', async e => {
 
   const participantId = document.getElementById('participantId').value.trim();
   const seminar = document.getElementById('seminar').value;
+  const presNames = presentationsBySeminar[seminar] || [];
   let presentations = [];
 
-  const presNames = presentationsBySeminar[seminar] || ["Presentation 1","Presentation 2","Presentation 3","Presentation 4","Presentation 5"];
-
-  for(let i=1;i<=5;i++){
-    const score = document.getElementById(`pres${i}`).value;
-    const comment = document.getElementById(`comment${i}`).value.trim();
-    if(!score || !comment){
-      message.textContent = 'Please fill in all fields for each presentation.';
-      message.className = 'error';
-      return;
-    }
-    presentations.push({ name: presNames[i-1], score: parseInt(score), comment });
-  }
-
-  if(!participantId || !seminar){
+  if (!participantId || !seminar) {
     message.textContent = 'Please fill in all required fields.';
     message.className = 'error';
     return;
   }
 
-  try{
+  // Read all presentations dynamically
+  for (let i = 0; i < presNames.length; i++) {
+    const score = document.getElementById(`pres${i+1}`).value;
+    const comment = document.getElementById(`comment${i+1}`).value.trim();
+    if (!score || !comment) {
+      message.textContent = 'Please fill in all fields for each presentation.';
+      message.className = 'error';
+      return;
+    }
+    presentations.push({ name: presNames[i], score: parseInt(score), comment });
+  }
+
+  try {
     const docRef = db.collection('votes').doc(`${participantId}_${seminar}`);
     const doc = await docRef.get();
-    if(doc.exists){
+    if (doc.exists) {
       message.textContent = 'You have already submitted an evaluation for this seminar.';
       message.className = 'error';
       return;
@@ -154,12 +153,12 @@ form.addEventListener('submit', async e => {
     form.reset();
     presDiv.innerHTML = '';
 
-    // --- Přesměrování na results.html po 1,5 sekundě ---
+    // Redirect to results.html after 1.5 seconds
     setTimeout(() => {
       window.location.href = 'results.html';
     }, 1500);
 
-  } catch(err){
+  } catch (err) {
     console.error(err);
     message.textContent = 'An error occurred while submitting.';
     message.className = 'error';
@@ -169,4 +168,5 @@ form.addEventListener('submit', async e => {
 
 </body>
 </html>
+
 
