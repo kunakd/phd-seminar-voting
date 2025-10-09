@@ -129,7 +129,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// 🔑 hesla pro jednotlivé prezentující (nastav dle potřeby)
+// 🔑 hesla pro jednotlivé prezentující
 const passwords = {
   "Marko Boskovic": "marko2025",
   "Pratibha Choudhari": "pratibha2025",
@@ -184,11 +184,15 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   let feedbacks = [];
   snapshot.forEach(doc => {
     const data = doc.data();
-    data.presentations.forEach(p => {
-      if (p.name === presenter && p.comment && p.comment.trim() !== "") {
-        feedbacks.push(p.comment);
-      }
-    });
+
+    // ✔ kontrola existence presentations, aby nevznikla chyba
+    if (data.presentations && Array.isArray(data.presentations)) {
+      data.presentations.forEach(p => {
+        if (p.name === presenter && p.comment && p.comment.trim() !== "") {
+          feedbacks.push(p.comment);
+        }
+      });
+    }
   });
 
   if (feedbacks.length === 0) {
@@ -205,5 +209,3 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 </script>
 </body>
 </html>
-
-
