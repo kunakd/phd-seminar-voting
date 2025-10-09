@@ -1,157 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>PhD Seminar Evaluation Results</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      text-align: center;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    header img {
-      height: 80px; /* výška loga */
-    }
-    .header-text h1 {
-      margin: 0;
-      font-size: 24px;
-      color: #222;
-    }
-    .header-text p {
-      margin: 0;
-      font-size: 16px;
-      color: #555;
-    }
-    select {
-      margin: 20px;
-      padding: 5px;
-      font-size: 16px;
-    }
-    .seminar-results {
-      margin-top: 20px;
-    }
-    .presenter {
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      margin: 10px auto;
-      width: 300px;
-      background-color: #f9f9f9;
-    }
-    .winner {
-      background-color: #d4edda;
-      border-color: #28a745;
-      font-weight: bold;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>PhD Seminar Results</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<style>
+body { 
+  font-family: Arial; 
+  margin: 0; 
+  padding: 20px; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+}
+
+header {
+  display: flex;
+  flex-direction: column;  /* položky pod sebou */
+  align-items: center;     /* zarovnání doprostřed */
+  margin-bottom: 30px;
+}
+
+header img {
+  height: 120px;   /* větší logo */
+  margin-bottom: 10px;    
+}
+
+header h1 {
+  margin: 0;
+  color: #333;
+  font-size: 28px;
+  text-align: center;
+}
+
+#seminarSelectContainer {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.seminar { 
+  margin-bottom: 30px; 
+  padding: 15px; 
+  border: 1px solid #ccc; 
+  border-radius: 8px; 
+  display: inline-block;     
+  text-align: center;        
+  min-width: 300px;          
+}
+
+.winner { 
+  font-weight: bold; 
+  color: green; 
+}
+
+.votes { 
+  font-weight: bold; 
+  color: darkorange; 
+  margin-bottom: 15px; 
+  text-align: center;        
+}
+
+p { 
+  margin: 4px 0; 
+}
+</style>
 </head>
 <body>
-  <header>
-    <!-- Tady jen změň název souboru, pokud se liší -->
-    <img src="logo.jpg" alt="Department Logo">
-    <div class="header-text">
-      <h1>Department of Chemistry</h1>
-      <p>PhD Seminar Evaluation Results</p>
-    </div>
-  </header>
 
-  <label for="seminarSelect">Select seminar: </label>
+<header>
+  <img src="logo.jpg" alt="Department Logo">
+  <h1>PhD Seminar Evaluation Results</h1>
+</header>
+
+<div id="seminarSelectContainer">
+  <label for="seminarSelect"><strong>Select seminar:</strong></label>
   <select id="seminarSelect">
     <option value="">-- choose seminar --</option>
+    <option value="Seminar 1">Seminar 1</option>
+    <option value="Seminar 2">Seminar 2</option>
+    <option value="Seminar 3">Seminar 3</option>
+    <option value="Seminar 4">Seminar 4</option>
+    <option value="Seminar 5">Seminar 5</option>
+    <option value="Seminar 6">Seminar 6</option>
   </select>
+</div>
 
-  <div id="results"></div>
+<div id="results"></div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
+  authDomain: "phd-seminar-voting.firebaseapp.com",
+  projectId: "phd-seminar-voting",
+  storageBucket: "phd-seminar-voting.firebasestorage.app",
+  messagingSenderId: "1042633812969",
+  appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
+  measurementId: "G-2JQDJWPH7L"
+};
 
-  <script>
-    // ⚠️ Sem vlož svůj vlastní Firebase config
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-    };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+const presentationsBySeminar = {
+  "Seminar 1": ["Marko Boskovic", "Pratibha Choudhari", "Samanta Rožánková", "Yu-Wei Tu"],
+  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Büşra Buse Tütüncü", "Botond Bolgár"],
+  "Seminar 3": ["Najam Ul Sahar", "Jialu Li", "Pipatpon Raksapon", "Ondřej Daněk"],
+  "Seminar 4": ["Filip Trajhan", "Donna Martínez Lopéz", "Pallavi Halkarni", "Andrea Vopálenská"],
+  "Seminar 5": ["Ondřej Hladík", "Alicia León Rodríguez", "Shubham Bhatt", "Jakub Krištof", "Nidhi Sinha"],
+  "Seminar 6": ["Anna-Marie Dušková", "Lucie Černá", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
+};
 
-    const seminarSelect = document.getElementById("seminarSelect");
-    const resultsDiv = document.getElementById("results");
+const seminarSelect = document.getElementById("seminarSelect");
+const resultsDiv = document.getElementById("results");
 
-    async function loadSeminars() {
-      const snapshot = await db.collection("votes").get();
-      const seminarNames = new Set();
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        if (data.seminar) seminarNames.add(data.seminar);
-      });
+seminarSelect.addEventListener("change", async () => {
+  const selected = seminarSelect.value;
+  resultsDiv.innerHTML = ''; // vyčistí předchozí výsledky
+  if (!selected) return;     // nic nezobrazovat pokud není vybrán seminář
 
-      seminarNames.forEach(name => {
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        seminarSelect.appendChild(opt);
-      });
-    }
+  // načtení hlasů jen pro vybraný seminář
+  const snapshotVotes = await db.collection('votes').where("seminar", "==", selected).get();
+  const numberOfVotes = snapshotVotes.size;
 
-    async function displayResults(seminarName) {
-      resultsDiv.innerHTML = "";
+  const votesDiv = document.createElement("p");
+  votesDiv.className = "votes";
+  votesDiv.innerText = `${numberOfVotes} participants of the seminar submitted their votes`;
+  resultsDiv.appendChild(votesDiv);
 
-      if (!seminarName) return;
+  const presNames = presentationsBySeminar[selected];
+  let totals = Array(presNames.length).fill(0);
 
-      const snapshot = await db.collection("votes").where("seminar", "==", seminarName).get();
-      const scores = {};
+  snapshotVotes.forEach(doc => {
+    doc.data().presentations.forEach((p,i)=>{ totals[i] += p.score; });
+  });
 
-      snapshot.forEach(doc => {
-        const { presenter, score } = doc.data();
-        if (!scores[presenter]) scores[presenter] = [];
-        scores[presenter].push(score);
-      });
+  const avgTotals = totals.map(t => (snapshotVotes.size>0 ? (t/snapshotVotes.size).toFixed(2) : 0));
+  const ranked = avgTotals.map((score,index)=>({score: parseFloat(score), index}))
+                         .sort((a,b)=>b.score-a.score);
 
-      const averages = Object.entries(scores).map(([presenter, arr]) => {
-        const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-        return { presenter, avg: avg.toFixed(2) };
-      });
+  let seminarDiv = document.createElement("div");
+  seminarDiv.className = "seminar";
 
-      averages.sort((a, b) => b.avg - a.avg);
+  let html = `<h2>${selected}</h2>`;
+  ranked.forEach((r,pos)=>{
+    html += `<p>${pos+1}. ${presNames[r.index]}: ${r.score} points</p>`;
+  });
 
-      const seminarDiv = document.createElement("div");
-      seminarDiv.className = "seminar-results";
+  const winnerIndex = ranked[0]?.index ?? 0;
+  html += `<p class="winner">Winner: ${presNames[winnerIndex]} with ${avgTotals[winnerIndex]} points</p>`;
+  seminarDiv.innerHTML = html;
+  resultsDiv.appendChild(seminarDiv);
 
-      averages.forEach((res, idx) => {
-        const div = document.createElement("div");
-        div.className = "presenter";
-        if (idx === 0) div.classList.add("winner");
-        div.innerHTML = `<strong>${res.presenter}</strong>: ${res.avg}`;
-        seminarDiv.appendChild(div);
-      });
-
-      resultsDiv.appendChild(seminarDiv);
-
-      if (averages.length > 0) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      }
-    }
-
-    seminarSelect.addEventListener("change", () => {
-      displayResults(seminarSelect.value);
-    });
-
-    loadSeminars();
-  </script>
+  confetti({ particleCount: 100, spread: 120, origin: { y: 0.6 } });
+});
+</script>
 </body>
 </html>
