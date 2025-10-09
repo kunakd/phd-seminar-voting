@@ -55,7 +55,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Přiřazení email → jméno prezentujícího
+// Email → jméno prezentujícího
 const emailToName = {
   "bolgarb@natur.cuni.cz": "Botond Bolgár",
   "vopalena@natur.cuni.cz": "Andrea Vopálenská",
@@ -85,7 +85,7 @@ const emailToName = {
   "leonroda@natur.cuni.cz": "Alicia León Rodríguez"
 };
 
-// Přihlášení přes Firebase Auth
+// Přihlášení
 document.getElementById("loginBtn").addEventListener("click", async () => {
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
@@ -109,21 +109,21 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       return;
     }
 
-    // Zkontrolujeme ve Firestore, jestli už heslo bylo změněno
+    // Kontrola passwordChanged
     const userDocRef = db.collection('users').doc(user.email);
     const userDoc = await userDocRef.get();
     let passwordChanged = false;
     if (userDoc.exists) {
       passwordChanged = userDoc.data().passwordChanged || false;
-    } else {
-      await userDocRef.set({ name: presenterName, passwordChanged: false });
     }
 
     if (!passwordChanged) {
       document.getElementById("changePasswordForm").style.display = "block";
+    } else {
+      document.getElementById("changePasswordForm").style.display = "none";
     }
 
-    // Načtení feedbacků
+    // Zobrazíme feedbacky
     const snapshot = await db.collection('votes').get();
     let feedbacks = [];
     snapshot.forEach(doc => {
@@ -153,7 +153,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   }
 });
 
-// Změna hesla (jednorázová)
+// Změna hesla
 document.getElementById("changePasswordBtn").addEventListener("click", async () => {
   const newPass = document.getElementById("newPassword").value;
   const passwordMsg = document.getElementById("passwordMsg");
@@ -171,16 +171,10 @@ document.getElementById("changePasswordBtn").addEventListener("click", async () 
 
   try {
     await user.updatePassword(newPass);
+    await db.collection('users').doc(user.email).set({ passwordChanged: true }, { merge: true });
     passwordMsg.style.color = "green";
     passwordMsg.textContent = "Password updated successfully!";
-
-    // Označíme ve Firestore, že heslo bylo změněno
-    const userDocRef = db.collection('users').doc(user.email);
-    await userDocRef.update({ passwordChanged: true });
-
-    // Schováme formulář po změně
     document.getElementById("changePasswordForm").style.display = "none";
-
   } catch (error) {
     passwordMsg.style.color = "red";
     passwordMsg.textContent = "Error: " + error.message;
