@@ -6,44 +6,17 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
-body { 
-  font-family: Arial; 
-  max-width: 800px; 
-  margin: 30px auto; 
-  padding: 20px;
-}
-
-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-header img {
-  height: 120px;  /* větší logo */
-  margin-bottom: 10px;
-}
-
-header h1 {
-  margin: 0;
-  color: #333;
-  font-size: 28px;
-  text-align: center;
-}
-
+body { font-family: Arial; max-width: 800px; margin: 30px auto; padding: 20px; }
+header { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
+header img { height: 120px; margin-bottom: 10px; }
+header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 label { display:block; margin-top:15px; font-weight:bold; }
 input, select, textarea, button { width:100%; padding:8px; margin-top:5px; }
 textarea { resize: vertical; }
 button { font-size:16px; margin-top:20px; }
 .success { color: green; margin-top:20px; }
 .error { color: red; margin-top:20px; }
-.presentation-block {
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 20px;
-}
+.presentation-block { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-top: 20px; }
 .presentation-block h3 { margin-top: 0; }
 </style>
 </head>
@@ -84,29 +57,28 @@ const firebaseConfig = {
   projectId: "phd-seminar-voting",
   storageBucket: "phd-seminar-voting.firebasestorage.app",
   messagingSenderId: "1042633812969",
-  appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
-  measurementId: "G-2JQDJWPH7L"
+  appId: "1:1042633812969:web:7fa70745a53338ec5ab978"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- Predefined presenters per seminar ---
+// --- Presenters ---
 const presentationsBySeminar = {
   "Seminar 1": ["Marko Boskovic", "Pratibha Choudhari", "Samanta Rožánková", "Yu-Wei Tu"],
   "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Büşra Buse Tütüncü", "Botond Bolgár"],
   "Seminar 3": ["Najam Ul Sahar", "Jialu Li", "Pipatpon Raksapon", "Ondřej Daněk"],
-  "Seminar 4": ["Filip Trajhan", "Donna Martínez Lopéz", "Pallavi Halkarni", "Andrea Vopálenská"],
-  "Seminar 5": ["Ondřej Hladík", "Alicia León Rodríguez", "Shubham Bhatt", "Jakub Krištof", "Nidhi Sinha"],
+  "Seminar 4": ["Filip Trajhan", "Alicia León Rodríguez", "Pallavi Halkarni", "Andrea Vopálenská"],
+  "Seminar 5": ["Ondřej Hladík", "Donna Martínez Lopéz", "Shubham Bhatt", "Jakub Krištof", "Nidhi Sinha"],
   "Seminar 6": ["Anna-Marie Dušková", "Lucie Černá", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
 const presDiv = document.getElementById("presentations");
 const seminarSelect = document.getElementById("seminar");
 
-// --- Render presentation blocks dynamically ---
+// --- Render presentations ---
 function renderPresentations(seminar) {
   presDiv.innerHTML = '';
-  if (!seminar) return; // nic nezobrazovat
+  if(!seminar) return;
   const presNames = presentationsBySeminar[seminar] || [];
   presNames.forEach((name,i)=>{
     const block = document.createElement("div");
@@ -124,15 +96,13 @@ function renderPresentations(seminar) {
     presDiv.appendChild(block);
   });
 }
+seminarSelect.addEventListener('change', e=>renderPresentations(e.target.value));
 
-// --- Update presentation blocks on seminar change ---
-seminarSelect.addEventListener('change', e => renderPresentations(e.target.value));
-
-// --- Form submission ---
+// --- Submit ---
 const form = document.getElementById('voteForm');
 const message = document.getElementById('message');
 
-form.addEventListener('submit', async e => {
+form.addEventListener('submit', async e=>{
   e.preventDefault();
   const participantId = document.getElementById('participantId').value.trim();
   const seminar = seminarSelect.value;
@@ -157,6 +127,8 @@ form.addEventListener('submit', async e => {
   }
 
   try{
+    console.log('Submitting vote:', participantId, seminar, presentations);
+
     const docRef = db.collection('votes').doc(`${participantId}_${seminar}`);
     const doc = await docRef.get();
     if(doc.exists){
@@ -164,12 +136,21 @@ form.addEventListener('submit', async e => {
       message.className = 'error';
       return;
     }
-    await docRef.set({participantId, seminar, presentations, timestamp: firebase.firestore.FieldValue.serverTimestamp()});
+
+    await docRef.set({
+      participantId,
+      seminar,
+      presentations,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
     message.textContent = 'Evaluation submitted successfully. Thank you!';
     message.className = 'success';
     form.reset();
     presDiv.innerHTML = '';
-    setTimeout(()=>window.location.href='results.html',1500);
+    // Přesměrování odstraněno
+    // setTimeout(()=>window.location.href='results.html',1500);
+
   }catch(err){
     console.error(err);
     message.textContent = 'An error occurred while submitting.';
