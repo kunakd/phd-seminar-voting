@@ -11,8 +11,8 @@ body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 
 header { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
 header img { height: 120px; margin-bottom: 10px; }
 header h1 { margin: 0; color: #333; font-size: 26px; }
-input, textarea { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; width: 100%; max-width: 400px; }
-button { padding: 8px 14px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; margin-top: 5px; }
+input { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
+button { padding: 8px 14px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; }
 button:hover { background: #45a049; }
 .error { color: red; font-weight: bold; margin-top: 10px; }
 .comment-box { width: 100%; max-width: 600px; padding: 12px; margin: 8px 0; border-radius: 8px; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,0.08); border-left: 4px solid #4CAF50; }
@@ -25,30 +25,20 @@ button:hover { background: #45a049; }
   <h1>Feedback from the PhD Seminar</h1>
 </header>
 
-<!-- Login -->
 <div id="loginForm">
   <input type="email" id="email" placeholder="Enter your email"><br>
   <input type="password" id="password" placeholder="Enter your password"><br>
-  <button id="loginBtn">Login</button>
+  <button id="loginBtn">Show Feedback</button>
   <div id="errorMsg" class="error"></div>
 </div>
 
-<!-- Feedback sekce -->
-<div id="feedbackSection" style="display:none; width:100%; max-width:600px;">
-  <h3>Submit Feedback</h3>
-  <textarea id="feedbackInput" placeholder="Enter your feedback..."></textarea><br>
-  <button id="submitFeedbackBtn">Submit Feedback</button>
-  <div id="submitMsg" class="error"></div>
+<div id="comments"></div>
 
-  <h3>Your Feedback</h3>
-  <div id="comments"></div>
-
-  <div id="changePasswordForm" style="margin-top:20px;">
-    <h3>Change Password</h3>
-    <input type="password" id="newPassword" placeholder="Enter new password"><br>
-    <button id="changePasswordBtn">Update Password</button>
-    <div id="passwordMsg" class="error"></div>
-  </div>
+<div id="changePasswordForm" style="margin-top:20px; display:none;">
+  <h3>Change Password</h3>
+  <input type="password" id="newPassword" placeholder="Enter new password"><br>
+  <button id="changePasswordBtn">Update Password</button>
+  <div id="passwordMsg" class="error"></div>
 </div>
 
 <script>
@@ -65,11 +55,38 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Přihlášení
+// Přiřazení email → jméno prezentujícího
+const emailToName = {
+  "bolgarb@natur.cuni.cz": "Botond Bolgár",
+  "vopalena@natur.cuni.cz": "Andrea Vopálenská",
+  "najamulsahar@yahoo.com": "Najam Ul Sahar",
+  "busetutuncu1@gmail.com": "Büşra Buse Tütüncü",
+  "tuyuturtle@gmail.com": "Yu-Wei Tu",
+  "trajhanf@natur.cuni.cz": "Filip Trajhan",
+  "nidhi21155@gmail.com": "Nidhi Sinha",
+  "sandyncc2792@gmail.com": "Sandip Baban Shinde",
+  "rozankovasamanta@gmail.com": "Samanta Rožánková",
+  "pipatpon.gong@gmail.com": "Pipatpon Raksapon",
+  "martinedon@natur.cuni.cz": "Donna Martínez Lopéz",
+  "abc16685782@gmail.com": "Jakub Krištof",
+  "eonroda@natur.cuni.cz": "Ema Bažíková",
+  "ja.kubo@outlook.com": "Jialu Li",
+  "b.kieftenbelt@outlook.com": "Bart Kieftenbelt",
+  "jyotpreet.kaur@natur.cuni.cz": "Jyotpreet Kaur",
+  "choudhapr@natur.cuni.cz": "Pratibha Choudhari",
+  "hladik.ondrej@natur.cuni.cz": "Ondřej Hladík",
+  "pallavihalkarni0704@gmail.com": "Pallavi Halkarni",
+  "ondrej.danek4@gmail.com": "Ondřej Daněk",
+  "cernalucie3@natur.cuni.cz": "Lucie Černá"
+};
+
+// Přihlášení přes Firebase Auth
 document.getElementById("loginBtn").addEventListener("click", async () => {
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
   const errorMsg = document.getElementById("errorMsg");
+  const commentsDiv = document.getElementById("comments");
+  commentsDiv.innerHTML = "";
   errorMsg.textContent = "";
 
   if (!email || !pass) {
@@ -80,68 +97,42 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   try {
     const userCredential = await firebase.auth().signInWithEmailAndPassword(email, pass);
     const user = userCredential.user;
-    document.getElementById("loginForm").style.display = "none";
-    document.getElementById("feedbackSection").style.display = "block";
-    loadFeedback(user.email);
+    document.getElementById("changePasswordForm").style.display = "block";
+
+    const presenterName = emailToName[user.email];
+    if (!presenterName) {
+      errorMsg.textContent = "Email not mapped to a presenter.";
+      return;
+    }
+
+    const snapshot = await db.collection('votes').get();
+    let feedbacks = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.presentations && Array.isArray(data.presentations)) {
+        data.presentations.forEach(p => {
+          if (p.name === presenterName && p.comment && p.comment.trim() !== "") {
+            feedbacks.push(p.comment);
+          }
+        });
+      }
+    });
+
+    if (feedbacks.length === 0) {
+      commentsDiv.innerHTML = "<p>No feedback submitted yet for this presenter.</p>";
+    } else {
+      feedbacks.forEach(c => {
+        const box = document.createElement("div");
+        box.className = "comment-box";
+        box.textContent = c;
+        commentsDiv.appendChild(box);
+      });
+    }
+
   } catch (error) {
     errorMsg.textContent = "Login failed: " + error.message;
   }
 });
-
-// Odeslat feedback
-document.getElementById("submitFeedbackBtn").addEventListener("click", async () => {
-  const feedback = document.getElementById("feedbackInput").value.trim();
-  const submitMsg = document.getElementById("submitMsg");
-  submitMsg.textContent = "";
-  const user = firebase.auth().currentUser;
-
-  if (!feedback) {
-    submitMsg.textContent = "Please enter feedback.";
-    return;
-  }
-  if (!user) {
-    submitMsg.textContent = "You must be logged in.";
-    return;
-  }
-
-  try {
-    await db.collection("feedback").add({
-      email: user.email,
-      comment: feedback,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    document.getElementById("feedbackInput").value = "";
-    submitMsg.style.color = "green";
-    submitMsg.textContent = "Feedback submitted!";
-    loadFeedback(user.email);
-  } catch (err) {
-    submitMsg.style.color = "red";
-    submitMsg.textContent = "Error: " + err.message;
-  }
-});
-
-// Načti feedback jen pro přihlášeného uživatele
-async function loadFeedback(email) {
-  const commentsDiv = document.getElementById("comments");
-  commentsDiv.innerHTML = "";
-
-  const snapshot = await db.collection("feedback")
-    .where("email", "==", email)
-    .orderBy("timestamp", "desc")
-    .get();
-
-  if (snapshot.empty) {
-    commentsDiv.innerHTML = "<p>No feedback submitted yet.</p>";
-  } else {
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const box = document.createElement("div");
-      box.className = "comment-box";
-      box.textContent = data.comment;
-      commentsDiv.appendChild(box);
-    });
-  }
-}
 
 // Změna hesla
 document.getElementById("changePasswordBtn").addEventListener("click", async () => {
