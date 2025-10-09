@@ -4,69 +4,18 @@
 <meta charset="UTF-8">
 <title>PhD Seminar Feedback</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f9f9f9;
-  margin: 0;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-header img {
-  height: 120px;
-  margin-bottom: 10px;
-}
-
-header h1 {
-  margin: 0;
-  color: #333;
-  font-size: 26px;
-}
-
-#loginForm {
-  margin-bottom: 20px;
-}
-
-input, select {
-  padding: 8px;
-  margin: 5px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-}
-
-button {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 6px;
-  background: #4CAF50;
-  color: white;
-  cursor: pointer;
-}
+body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+header { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
+header img { height: 120px; margin-bottom: 10px; }
+header h1 { margin: 0; color: #333; font-size: 26px; }
+input { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
+button { padding: 8px 14px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; }
 button:hover { background: #45a049; }
-
 .error { color: red; font-weight: bold; margin-top: 10px; }
-
-.comment-box {
-  width: 100%;
-  max-width: 600px;
-  padding: 12px;
-  margin: 8px 0;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 1px 5px rgba(0,0,0,0.08);
-  border-left: 4px solid #4CAF50;
-}
+.comment-box { width: 100%; max-width: 600px; padding: 12px; margin: 8px 0; border-radius: 8px; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,0.08); border-left: 4px solid #4CAF50; }
 </style>
 </head>
 <body>
@@ -77,43 +26,20 @@ button:hover { background: #45a049; }
 </header>
 
 <div id="loginForm">
-  <label for="presenterSelect"><strong>Select your name:</strong></label>
-  <select id="presenterSelect">
-    <option value="">-- choose presenter --</option>
-    <option value="Marko Boskovic">Marko Boskovic</option>
-    <option value="Pratibha Choudhari">Pratibha Choudhari</option>
-    <option value="Samanta Rožánková">Samanta Rožánková</option>
-    <option value="Yu-Wei Tu">Yu-Wei Tu</option>
-    <option value="Bart Kieftenbelt">Bart Kieftenbelt</option>
-    <option value="Ema Bažíková">Ema Bažíková</option>
-    <option value="Büşra Buse Tütüncü">Büşra Buse Tütüncü</option>
-    <option value="Botond Bolgár">Botond Bolgár</option>
-    <option value="Najam Ul Sahar">Najam Ul Sahar</option>
-    <option value="Jialu Li">Jialu Li</option>
-    <option value="Pipatpon Raksapon">Pipatpon Raksapon</option>
-    <option value="Ondřej Daněk">Ondřej Daněk</option>
-    <option value="Filip Trajhan">Filip Trajhan</option>
-    <option value="Alicia León Rodríguez">Alicia León Rodríguez</option>
-    <option value="Pallavi Halkarni">Pallavi Halkarni</option>
-    <option value="Andrea Vopálenská">Andrea Vopálenská</option>
-    <option value="Ondřej Hladík">Ondřej Hladík</option>
-    <option value="Donna Martínez Lopéz">Donna Martínez Lopéz</option>
-    <option value="Shubham Bhatt">Shubham Bhatt</option>
-    <option value="Jakub Krištof">Jakub Krištof</option>
-    <option value="Nidhi Sinha">Nidhi Sinha</option>
-    <option value="Anna-Marie Dušková">Anna-Marie Dušková</option>
-    <option value="Lucie Černá">Lucie Černá</option>
-    <option value="Jyotpreet Kaur">Jyotpreet Kaur</option>
-    <option value="Sandip Baban Shinde">Sandip Baban Shinde</option>
-    <option value="Dominik Kunák">Dominik Kunák</option>
-  </select>
-  <br>
-  <input type="password" id="password" placeholder="Enter your password">
+  <input type="email" id="email" placeholder="Enter your email"><br>
+  <input type="password" id="password" placeholder="Enter your password"><br>
   <button id="loginBtn">Show Feedback</button>
   <div id="errorMsg" class="error"></div>
 </div>
 
 <div id="comments"></div>
+
+<div id="changePasswordForm" style="margin-top:20px; display:none;">
+  <h3>Change Password</h3>
+  <input type="password" id="newPassword" placeholder="Enter new password"><br>
+  <button id="changePasswordBtn">Update Password</button>
+  <div id="passwordMsg" class="error"></div>
+</div>
 
 <script>
 // Firebase config
@@ -129,81 +55,80 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// 🔑 hesla pro jednotlivé prezentující
-const passwords = {
-  "Marko Boskovic": "marko2025",
-  "Pratibha Choudhari": "pratibha2025",
-  "Samanta Rožánková": "samanta2025",
-  "Yu-Wei Tu": "yu-wei2025",
-  "Bart Kieftenbelt": "bart2025",
-  "Ema Bažíková": "ema2025",
-  "Büşra Buse Tütüncü": "busra2025",
-  "Botond Bolgár": "botond2025",
-  "Najam Ul Sahar": "najam2025",
-  "Jialu Li": "jialu2025",
-  "Pipatpon Raksapon": "pipatpon2025",
-  "Ondřej Daněk": "danek2025",
-  "Filip Trajhan": "filip2025",
-  "Alicia León Rodríguez": "alicia2025",
-  "Pallavi Halkarni": "pallavi2025",
-  "Andrea Vopálenská": "andrea2025",
-  "Ondřej Hladík": "ondrej2025",
-  "Donna Martínez Lopéz": "donna2025",
-  "Shubham Bhatt": "shubham2025",
-  "Jakub Krištof": "jakub2025",
-  "Nidhi Sinha": "nidhi2025",
-  "Anna-Marie Dušková": "anna-marie2025",
-  "Lucie Černá": "lucie123",
-  "Jyotpreet Kaur": "jyotpreet2025",
-  "Sandip Baban Shinde": "sandip2025",
-  "Dominik Kunák": "dominik2025"
-};
-
+// Přihlášení přes Firebase Auth
 document.getElementById("loginBtn").addEventListener("click", async () => {
-  const presenter = document.getElementById("presenterSelect").value;
+  const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
   const errorMsg = document.getElementById("errorMsg");
   const commentsDiv = document.getElementById("comments");
-
-  errorMsg.textContent = "";
   commentsDiv.innerHTML = "";
+  errorMsg.textContent = "";
 
-  if (!presenter) {
-    errorMsg.textContent = "Please choose your name.";
+  if (!email || !pass) {
+    errorMsg.textContent = "Please enter email and password.";
     return;
   }
 
-  if (passwords[presenter] !== pass) {
-    errorMsg.textContent = "Incorrect password.";
-    return;
-  }
+  try {
+    const userCredential = await firebase.auth().signInWithEmailAndPassword(email, pass);
+    const user = userCredential.user;
 
-  // Heslo je správné → načteme komentáře
-  const snapshot = await db.collection('votes').get();
+    // Zobrazit formulář pro změnu hesla
+    document.getElementById("changePasswordForm").style.display = "block";
 
-  let feedbacks = [];
-  snapshot.forEach(doc => {
-    const data = doc.data();
+    // Načteme komentáře jen pro přihlášeného uživatele
+    const snapshot = await db.collection('votes').get();
+    let feedbacks = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.presentations && Array.isArray(data.presentations)) {
+        data.presentations.forEach(p => {
+          if (p.email === user.email && p.comment && p.comment.trim() !== "") {
+            feedbacks.push(p.comment);
+          }
+        });
+      }
+    });
 
-    // ✔ kontrola existence presentations, aby nevznikla chyba
-    if (data.presentations && Array.isArray(data.presentations)) {
-      data.presentations.forEach(p => {
-        if (p.name === presenter && p.comment && p.comment.trim() !== "") {
-          feedbacks.push(p.comment);
-        }
+    if (feedbacks.length === 0) {
+      commentsDiv.innerHTML = "<p>No feedback submitted yet for this presenter.</p>";
+    } else {
+      feedbacks.forEach(c => {
+        const box = document.createElement("div");
+        box.className = "comment-box";
+        box.textContent = c;
+        commentsDiv.appendChild(box);
       });
     }
-  });
 
-  if (feedbacks.length === 0) {
-    commentsDiv.innerHTML = "<p>No feedback submitted yet for this presenter.</p>";
-  } else {
-    feedbacks.forEach(c => {
-      const box = document.createElement("div");
-      box.className = "comment-box";
-      box.textContent = c;
-      commentsDiv.appendChild(box);
-    });
+  } catch (error) {
+    errorMsg.textContent = "Login failed: " + error.message;
+  }
+});
+
+// Změna hesla
+document.getElementById("changePasswordBtn").addEventListener("click", async () => {
+  const newPass = document.getElementById("newPassword").value;
+  const passwordMsg = document.getElementById("passwordMsg");
+  passwordMsg.textContent = "";
+  const user = firebase.auth().currentUser;
+
+  if (!user) {
+    passwordMsg.textContent = "You must be logged in to change password.";
+    return;
+  }
+  if (!newPass) {
+    passwordMsg.textContent = "Please enter a new password.";
+    return;
+  }
+
+  try {
+    await user.updatePassword(newPass);
+    passwordMsg.style.color = "green";
+    passwordMsg.textContent = "Password updated successfully!";
+  } catch (error) {
+    passwordMsg.style.color = "red";
+    passwordMsg.textContent = "Error: " + error.message;
   }
 });
 </script>
