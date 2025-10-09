@@ -102,7 +102,6 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   try {
     const userCredential = await firebase.auth().signInWithEmailAndPassword(email, pass);
     const user = userCredential.user;
-    document.getElementById("changePasswordForm").style.display = "block";
 
     const presenterName = emailToName[user.email];
     if (!presenterName) {
@@ -110,6 +109,21 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       return;
     }
 
+    // Zkontrolujeme ve Firestore, jestli už heslo bylo změněno
+    const userDocRef = db.collection('users').doc(user.email);
+    const userDoc = await userDocRef.get();
+    let passwordChanged = false;
+    if (userDoc.exists) {
+      passwordChanged = userDoc.data().passwordChanged || false;
+    } else {
+      await userDocRef.set({ name: presenterName, passwordChanged: false });
+    }
+
+    if (!passwordChanged) {
+      document.getElementById("changePasswordForm").style.display = "block";
+    }
+
+    // Načtení feedbacků
     const snapshot = await db.collection('votes').get();
     let feedbacks = [];
     snapshot.forEach(doc => {
@@ -139,7 +153,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   }
 });
 
-// Změna hesla
+// Změna hesla (jednorázová)
 document.getElementById("changePasswordBtn").addEventListener("click", async () => {
   const newPass = document.getElementById("newPassword").value;
   const passwordMsg = document.getElementById("passwordMsg");
@@ -159,6 +173,14 @@ document.getElementById("changePasswordBtn").addEventListener("click", async () 
     await user.updatePassword(newPass);
     passwordMsg.style.color = "green";
     passwordMsg.textContent = "Password updated successfully!";
+
+    // Označíme ve Firestore, že heslo bylo změněno
+    const userDocRef = db.collection('users').doc(user.email);
+    await userDocRef.update({ passwordChanged: true });
+
+    // Schováme formulář po změně
+    document.getElementById("changePasswordForm").style.display = "none";
+
   } catch (error) {
     passwordMsg.style.color = "red";
     passwordMsg.textContent = "Error: " + error.message;
