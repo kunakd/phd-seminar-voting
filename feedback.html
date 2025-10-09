@@ -11,8 +11,8 @@ body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 
 header { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
 header img { height: 120px; margin-bottom: 10px; }
 header h1 { margin: 0; color: #333; font-size: 26px; }
-input { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
-button { padding: 8px 14px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; }
+input, textarea { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; width: 100%; max-width: 400px; }
+button { padding: 8px 14px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; margin-top: 5px; }
 button:hover { background: #45a049; }
 .error { color: red; font-weight: bold; margin-top: 10px; }
 .comment-box { width: 100%; max-width: 600px; padding: 12px; margin: 8px 0; border-radius: 8px; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,0.08); border-left: 4px solid #4CAF50; }
@@ -25,20 +25,30 @@ button:hover { background: #45a049; }
   <h1>Feedback from the PhD Seminar</h1>
 </header>
 
+<!-- Login -->
 <div id="loginForm">
   <input type="email" id="email" placeholder="Enter your email"><br>
   <input type="password" id="password" placeholder="Enter your password"><br>
-  <button id="loginBtn">Show Feedback</button>
+  <button id="loginBtn">Login</button>
   <div id="errorMsg" class="error"></div>
 </div>
 
-<div id="comments"></div>
+<!-- Feedback sekce -->
+<div id="feedbackSection" style="display:none; width:100%; max-width:600px;">
+  <h3>Submit Feedback</h3>
+  <textarea id="feedbackInput" placeholder="Enter your feedback..."></textarea><br>
+  <button id="submitFeedbackBtn">Submit Feedback</button>
+  <div id="submitMsg" class="error"></div>
 
-<div id="changePasswordForm" style="margin-top:20px; display:none;">
-  <h3>Change Password</h3>
-  <input type="password" id="newPassword" placeholder="Enter new password"><br>
-  <button id="changePasswordBtn">Update Password</button>
-  <div id="passwordMsg" class="error"></div>
+  <h3>Your Feedback</h3>
+  <div id="comments"></div>
+
+  <div id="changePasswordForm" style="margin-top:20px;">
+    <h3>Change Password</h3>
+    <input type="password" id="newPassword" placeholder="Enter new password"><br>
+    <button id="changePasswordBtn">Update Password</button>
+    <div id="passwordMsg" class="error"></div>
+  </div>
 </div>
 
 <script>
@@ -55,13 +65,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Přihlášení přes Firebase Auth
+// Přihlášení
 document.getElementById("loginBtn").addEventListener("click", async () => {
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
   const errorMsg = document.getElementById("errorMsg");
-  const commentsDiv = document.getElementById("comments");
-  commentsDiv.innerHTML = "";
   errorMsg.textContent = "";
 
   if (!email || !pass) {
@@ -72,39 +80,68 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   try {
     const userCredential = await firebase.auth().signInWithEmailAndPassword(email, pass);
     const user = userCredential.user;
-
-    // Zobrazit formulář pro změnu hesla
-    document.getElementById("changePasswordForm").style.display = "block";
-
-    // Načteme komentáře jen pro přihlášeného uživatele
-    const snapshot = await db.collection('votes').get();
-    let feedbacks = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.presentations && Array.isArray(data.presentations)) {
-        data.presentations.forEach(p => {
-          if (p.email === user.email && p.comment && p.comment.trim() !== "") {
-            feedbacks.push(p.comment);
-          }
-        });
-      }
-    });
-
-    if (feedbacks.length === 0) {
-      commentsDiv.innerHTML = "<p>No feedback submitted yet for this presenter.</p>";
-    } else {
-      feedbacks.forEach(c => {
-        const box = document.createElement("div");
-        box.className = "comment-box";
-        box.textContent = c;
-        commentsDiv.appendChild(box);
-      });
-    }
-
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("feedbackSection").style.display = "block";
+    loadFeedback(user.email);
   } catch (error) {
     errorMsg.textContent = "Login failed: " + error.message;
   }
 });
+
+// Odeslat feedback
+document.getElementById("submitFeedbackBtn").addEventListener("click", async () => {
+  const feedback = document.getElementById("feedbackInput").value.trim();
+  const submitMsg = document.getElementById("submitMsg");
+  submitMsg.textContent = "";
+  const user = firebase.auth().currentUser;
+
+  if (!feedback) {
+    submitMsg.textContent = "Please enter feedback.";
+    return;
+  }
+  if (!user) {
+    submitMsg.textContent = "You must be logged in.";
+    return;
+  }
+
+  try {
+    await db.collection("feedback").add({
+      email: user.email,
+      comment: feedback,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById("feedbackInput").value = "";
+    submitMsg.style.color = "green";
+    submitMsg.textContent = "Feedback submitted!";
+    loadFeedback(user.email);
+  } catch (err) {
+    submitMsg.style.color = "red";
+    submitMsg.textContent = "Error: " + err.message;
+  }
+});
+
+// Načti feedback jen pro přihlášeného uživatele
+async function loadFeedback(email) {
+  const commentsDiv = document.getElementById("comments");
+  commentsDiv.innerHTML = "";
+
+  const snapshot = await db.collection("feedback")
+    .where("email", "==", email)
+    .orderBy("timestamp", "desc")
+    .get();
+
+  if (snapshot.empty) {
+    commentsDiv.innerHTML = "<p>No feedback submitted yet.</p>";
+  } else {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const box = document.createElement("div");
+      box.className = "comment-box";
+      box.textContent = data.comment;
+      commentsDiv.appendChild(box);
+    });
+  }
+}
 
 // Změna hesla
 document.getElementById("changePasswordBtn").addEventListener("click", async () => {
