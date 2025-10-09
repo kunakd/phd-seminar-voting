@@ -11,13 +11,16 @@ header { display: flex; flex-direction: column; align-items: center; margin-bott
 header img { height: 120px; margin-bottom: 10px; }
 header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 label { display:block; margin-top:15px; font-weight:bold; }
-input, select, textarea, button { width:100%; padding:8px; margin-top:5px; }
-textarea { resize: vertical; }
-button { font-size:16px; margin-top:20px; }
+input, select, textarea, button { width:100%; padding:8px; margin-top:5px; border-radius:4px; border:1px solid #ccc; box-sizing:border-box; }
+textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
+button { font-size:16px; margin-top:10px; cursor: pointer; }
 .success { color: green; margin-top:20px; }
 .error { color: red; margin-top:20px; }
-.presentation-block { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-top: 20px; }
-.presentation-block h3 { margin-top: 0; }
+.presentation-block { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-top: 20px; background: #fafafa; box-shadow: 1px 1px 5px rgba(0,0,0,0.05);}
+.presentation-block h3 { margin-top: 0; color: #444; }
+.checkbox-row { display: flex; align-items: center; margin-top: 5px; gap: 5px; }
+.checkbox-row input[type="checkbox"] { width: auto; cursor:pointer; }
+textarea:disabled { background-color: #eee; color: #666; }
 </style>
 </head>
 <body>
@@ -75,7 +78,7 @@ const presentationsBySeminar = {
 const presDiv = document.getElementById("presentations");
 const seminarSelect = document.getElementById("seminar");
 
-// --- Render presentations ---
+// --- Render presentations with "No comments" checkbox ---
 function renderPresentations(seminar) {
   presDiv.innerHTML = '';
   if(!seminar) return;
@@ -91,9 +94,26 @@ function renderPresentations(seminar) {
         ${Array.from({length:10}, (_,j)=>`<option value="${j+1}">${j+1}</option>`).join("")}
       </select>
       <label for="comment${i+1}">What should be improved?</label>
-      <textarea id="comment${i+1}" rows="3" required></textarea>
+      <textarea id="comment${i+1}" rows="3"></textarea>
+      <div class="checkbox-row">
+        <input type="checkbox" id="nocmt${i+1}">
+        <label for="nocmt${i+1}">No comments</label>
+      </div>
     `;
     presDiv.appendChild(block);
+
+    const checkbox = block.querySelector(`#nocmt${i+1}`);
+    const textarea = block.querySelector(`#comment${i+1}`);
+
+    // --- Enable/disable textarea based on checkbox ---
+    checkbox.addEventListener('change', ()=>{
+      if(checkbox.checked){
+        textarea.disabled = true;
+        textarea.value = "";
+      }else{
+        textarea.disabled = false;
+      }
+    });
   });
 }
 seminarSelect.addEventListener('change', e=>renderPresentations(e.target.value));
@@ -118,12 +138,19 @@ form.addEventListener('submit', async e=>{
   for(let i=0;i<presNames.length;i++){
     const score = document.getElementById(`pres${i+1}`).value;
     const comment = document.getElementById(`comment${i+1}`).value.trim();
-    if(!score || !comment){
-      message.textContent = 'Please fill in all fields for each presentation.';
+    const noCommentChecked = document.getElementById(`nocmt${i+1}`).checked;
+
+    if(!score){
+      message.textContent = 'Please fill in a score for each presentation.';
       message.className = 'error';
       return;
     }
-    presentations.push({name: presNames[i], score: parseInt(score), comment});
+
+    presentations.push({
+      name: presNames[i],
+      score: parseInt(score),
+      comment: noCommentChecked ? "" : comment
+    });
   }
 
   try{
@@ -148,9 +175,6 @@ form.addEventListener('submit', async e=>{
     message.className = 'success';
     form.reset();
     presDiv.innerHTML = '';
-    // Přesměrování odstraněno
-    // setTimeout(()=>window.location.href='results.html',1500);
-
   }catch(err){
     console.error(err);
     message.textContent = 'An error occurred while submitting.';
@@ -161,3 +185,4 @@ form.addEventListener('submit', async e=>{
 
 </body>
 </html>
+

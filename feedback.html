@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PhD Seminar Feedback</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f9f9f9;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+header img {
+  height: 120px;
+  margin-bottom: 10px;
+}
+
+header h1 {
+  margin: 0;
+  color: #333;
+  font-size: 26px;
+}
+
+#loginForm {
+  margin-bottom: 20px;
+}
+
+input, select {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #4CAF50;
+  color: white;
+  cursor: pointer;
+}
+button:hover { background: #45a049; }
+
+.error { color: red; font-weight: bold; margin-top: 10px; }
+
+.comment-box {
+  width: 100%;
+  max-width: 600px;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+  border-left: 4px solid #4CAF50;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="logo.jpg" alt="Department Logo">
+  <h1>Feedback from the PhD Seminar</h1>
+</header>
+
+<div id="loginForm">
+  <label for="presenterSelect"><strong>Select your name:</strong></label>
+  <select id="presenterSelect">
+    <option value="">-- choose presenter --</option>
+    <option value="Marko Boskovic">Marko Boskovic</option>
+    <option value="Pratibha Choudhari">Pratibha Choudhari</option>
+    <option value="Samanta Rožánková">Samanta Rožánková</option>
+    <option value="Yu-Wei Tu">Yu-Wei Tu</option>
+    <option value="Bart Kieftenbelt">Bart Kieftenbelt</option>
+    <option value="Ema Bažíková">Ema Bažíková</option>
+    <option value="Büşra Buse Tütüncü">Büşra Buse Tütüncü</option>
+    <option value="Botond Bolgár">Botond Bolgár</option>
+    <option value="Najam Ul Sahar">Najam Ul Sahar</option>
+    <option value="Jialu Li">Jialu Li</option>
+    <option value="Pipatpon Raksapon">Pipatpon Raksapon</option>
+    <option value="Ondřej Daněk">Ondřej Daněk</option>
+    <option value="Filip Trajhan">Filip Trajhan</option>
+    <option value="Alicia León Rodríguez">Alicia León Rodríguez</option>
+    <option value="Pallavi Halkarni">Pallavi Halkarni</option>
+    <option value="Andrea Vopálenská">Andrea Vopálenská</option>
+    <option value="Ondřej Hladík">Ondřej Hladík</option>
+    <option value="Donna Martínez Lopéz">Donna Martínez Lopéz</option>
+    <option value="Shubham Bhatt">Shubham Bhatt</option>
+    <option value="Jakub Krištof">Jakub Krištof</option>
+    <option value="Nidhi Sinha">Nidhi Sinha</option>
+    <option value="Anna-Marie Dušková">Anna-Marie Dušková</option>
+    <option value="Lucie Černá">Lucie Černá</option>
+    <option value="Jyotpreet Kaur">Jyotpreet Kaur</option>
+    <option value="Sandip Baban Shinde">Sandip Baban Shinde</option>
+    <option value="Dominik Kunák">Dominik Kunák</option>
+  </select>
+  <br>
+  <input type="password" id="password" placeholder="Enter your password">
+  <button id="loginBtn">Show Feedback</button>
+  <div id="errorMsg" class="error"></div>
+</div>
+
+<div id="comments"></div>
+
+<script>
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
+  authDomain: "phd-seminar-voting.firebaseapp.com",
+  projectId: "phd-seminar-voting",
+  storageBucket: "phd-seminar-voting.firebasestorage.app",
+  messagingSenderId: "1042633812969",
+  appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
+  measurementId: "G-2JQDJWPH7L"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// 🔑 hesla pro jednotlivé prezentující (nastav dle potřeby)
+const passwords = {
+  "Marko Boskovic": "marko123",
+  "Pratibha Choudhari": "pratibha123",
+  "Samanta Rožánková": "samanta123",
+  "Yu-Wei Tu": "tu123",
+  "Bart Kieftenbelt": "bart123",
+  "Ema Bažíková": "ema123",
+  "Büşra Buse Tütüncü": "busra123",
+  "Botond Bolgár": "botond123",
+  "Najam Ul Sahar": "najam123",
+  "Jialu Li": "jialu123",
+  "Pipatpon Raksapon": "pipat123",
+  "Ondřej Daněk": "danek123",
+  "Filip Trajhan": "filip123",
+  "Alicia León Rodríguez": "alicia123",
+  "Pallavi Halkarni": "pallavi123",
+  "Andrea Vopálenská": "andrea123",
+  "Ondřej Hladík": "hladik123",
+  "Donna Martínez Lopéz": "donna123",
+  "Shubham Bhatt": "shubham123",
+  "Jakub Krištof": "jakub123",
+  "Nidhi Sinha": "nidhi123",
+  "Anna-Marie Dušková": "anna123",
+  "Lucie Černá": "lucie123",
+  "Jyotpreet Kaur": "jyot123",
+  "Sandip Baban Shinde": "sandip123",
+  "Dominik Kunák": "dominik123"
+};
+
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const presenter = document.getElementById("presenterSelect").value;
+  const pass = document.getElementById("password").value;
+  const errorMsg = document.getElementById("errorMsg");
+  const commentsDiv = document.getElementById("comments");
+
+  errorMsg.textContent = "";
+  commentsDiv.innerHTML = "";
+
+  if (!presenter) {
+    errorMsg.textContent = "Please choose your name.";
+    return;
+  }
+
+  if (passwords[presenter] !== pass) {
+    errorMsg.textContent = "Incorrect password.";
+    return;
+  }
+
+  // Heslo je správné → načteme komentáře
+  const snapshot = await db.collection('votes').get();
+
+  let feedbacks = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    data.presentations.forEach(p => {
+      if (p.name === presenter && p.comment && p.comment.trim() !== "") {
+        feedbacks.push(p.comment);
+      }
+    });
+  });
+
+  if (feedbacks.length === 0) {
+    commentsDiv.innerHTML = "<p>No feedback submitted yet for this presenter.</p>";
+  } else {
+    feedbacks.forEach(c => {
+      const box = document.createElement("div");
+      box.className = "comment-box";
+      box.textContent = c;
+      commentsDiv.appendChild(box);
+    });
+  }
+});
+</script>
+</body>
+</html>
+
+
