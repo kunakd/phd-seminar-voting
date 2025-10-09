@@ -109,21 +109,29 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       return;
     }
 
-    // Kontrola passwordChanged
+    // Najdeme dokument v "users"
     const userDocRef = db.collection('users').doc(user.email);
     const userDoc = await userDocRef.get();
     let passwordChanged = false;
+
     if (userDoc.exists) {
       passwordChanged = userDoc.data().passwordChanged || false;
+    } else {
+      // Pokud ještě neexistuje, vytvoříme nový záznam
+      await userDocRef.set({
+        name: presenterName,
+        passwordChanged: false
+      });
     }
 
+    // Zobrazení/skrývání formuláře pro změnu hesla
     if (!passwordChanged) {
       document.getElementById("changePasswordForm").style.display = "block";
     } else {
       document.getElementById("changePasswordForm").style.display = "none";
     }
 
-    // Zobrazíme feedbacky
+    // Načtení feedbacků
     const snapshot = await db.collection('votes').get();
     let feedbacks = [];
     snapshot.forEach(doc => {
