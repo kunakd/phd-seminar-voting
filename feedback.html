@@ -7,39 +7,142 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
-body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
-header img { height: 120px; margin-bottom: 10px; }
-header h1 { margin: 0; color: #333; font-size: 26px; }
-input { padding: 8px; margin: 5px; border-radius: 5px; border: 1px solid #ccc; }
-button { padding: 8px 14px; border: none; border-radius: 6px; background: #4CAF50; color: white; cursor: pointer; }
-button:hover { background: #45a049; }
-.error { color: red; font-weight: bold; margin-top: 10px; }
-.comment-box { width: 100%; max-width: 600px; padding: 12px; margin: 8px 0; border-radius: 8px; background: #fff; box-shadow: 0 1px 5px rgba(0,0,0,0.08); border-left: 4px solid #4CAF50; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f0f0f0;
+  margin: 0;
+  padding: 40px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.container {
+  background: #ffffff;
+  width: 100%;
+  max-width: 700px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  padding: 30px;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+header img {
+  height: 120px;
+  margin-bottom: 15px;
+}
+
+header h1 {
+  margin: 0;
+  color: #333;
+  font-size: 26px;
+}
+
+input {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: 90%;
+  max-width: 300px;
+}
+
+button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #4CAF50;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #45a049;
+}
+
+.error {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.comment-box {
+  width: 100%;
+  max-width: 600px;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+  border-left: 4px solid #4CAF50;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeIn 0.5s ease forwards;
+}
+
+/* jemná fade-in animace pro komentáře */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>
 </head>
 <body>
 
-<header>
-  <img src="logo.jpg" alt="Department Logo">
-  <h1>Feedback from the PhD Seminar</h1>
-</header>
+<div class="container">
+  <header>
+    <img src="logo.jpg" alt="Department Logo">
+    <h1>Feedback from the PhD Seminar</h1>
+  </header>
 
-<div id="loginForm">
-  <input type="email" id="email" placeholder="Enter your email"><br>
-  <input type="password" id="password" placeholder="Enter your password"><br>
-  <button id="loginBtn">Show Feedback</button>
-  <div id="errorMsg" class="error"></div>
+  <div id="loginForm">
+    <input type="email" id="email" placeholder="Enter your email"><br>
+    <input type="password" id="password" placeholder="Enter your password"><br>
+    <button id="loginBtn">Show Feedback</button>
+    <div id="errorMsg" class="error"></div>
+  </div>
+
+  <div id="comments"></div>
+
+  <div id="changePasswordForm" style="margin-top:20px; display:none;">
+    <h3>Change Password</h3>
+    <input type="password" id="newPassword" placeholder="Enter new password"><br>
+    <button id="changePasswordBtn">Update Password</button>
+    <div id="passwordMsg" class="error"></div>
+  </div>
 </div>
 
-<div id="comments"></div>
-
-<div id="changePasswordForm" style="margin-top:20px; display:none;">
-  <h3>Change Password</h3>
-  <input type="password" id="newPassword" placeholder="Enter new password"><br>
-  <button id="changePasswordBtn">Update Password</button>
-  <div id="passwordMsg" class="error"></div>
-</div>
+<footer style="
+  background-color: #ffffff;
+  text-align: center;
+  padding: 25px 15px;
+  font-size: 14px;
+  color: #000;
+  border-top: 1px solid #ccc;
+  margin-top: 40px;
+  width: 100%;
+">
+  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
+  <p style="margin: 6px 0;">
+    © 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
+  </p>
+  <p style="margin: 6px 0;">
+    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
+    Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz
+  </p>
+  <p style="margin: 6px 0;">
+    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
+      https://orgchem.natur.cuni.cz
+    </a>
+  </p>
+</footer>
 
 <script>
 // Firebase config
@@ -117,7 +220,6 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     if (userDoc.exists) {
       passwordChanged = userDoc.data().passwordChanged || false;
     } else {
-      // Pokud ještě neexistuje, vytvoříme nový záznam
       await userDocRef.set({
         name: presenterName,
         passwordChanged: false
@@ -125,11 +227,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     }
 
     // Zobrazení/skrývání formuláře pro změnu hesla
-    if (!passwordChanged) {
-      document.getElementById("changePasswordForm").style.display = "block";
-    } else {
-      document.getElementById("changePasswordForm").style.display = "none";
-    }
+    document.getElementById("changePasswordForm").style.display = passwordChanged ? "none" : "block";
 
     // Načtení feedbacků
     const snapshot = await db.collection('votes').get();
@@ -148,9 +246,10 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     if (feedbacks.length === 0) {
       commentsDiv.innerHTML = "<p>No feedback submitted yet for this presenter.</p>";
     } else {
-      feedbacks.forEach(c => {
+      feedbacks.forEach((c, i) => {
         const box = document.createElement("div");
         box.className = "comment-box";
+        box.style.animationDelay = `${i * 0.08}s`; // pozvolné zpoždění animace
         box.textContent = c;
         commentsDiv.appendChild(box);
       });
@@ -189,28 +288,6 @@ document.getElementById("changePasswordBtn").addEventListener("click", async () 
   }
 });
 </script>
-<footer style="
-  background-color: #ffffff;
-  text-align: center;
-  padding: 25px 15px;
-  font-size: 14px;
-  color: #000;
-  border-top: 1px solid #ccc;
-  margin-top: 60px;
-">
-  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
-  <p style="margin: 6px 0;">
-    © 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
-  </p>
-  <p style="margin: 6px 0;">
-    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
-    Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz
-  </p>
-  <p style="margin: 6px 0;">
-    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
-      https://orgchem.natur.cuni.cz
-    </a>
-  </p>
-</footer>
+
 </body>
 </html>
