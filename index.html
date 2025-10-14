@@ -17,11 +17,14 @@ html, body {
 
 main {
   flex: 1;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 30px 20px;
   display: flex;
   flex-direction: column;
+  justify-content: center; /* Vertikální centrování */
+  align-items: center;     /* Horizontální centrování */
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 30px 20px;
 }
 
 header {
@@ -54,9 +57,19 @@ button { font-size:16px; margin-top:10px; cursor: pointer; }
 .checkbox-row { display: flex; align-items: center; margin-top: 5px; gap: 5px; }
 .checkbox-row input[type="checkbox"] { width: auto; cursor:pointer; }
 textarea:disabled { background-color: #eee; color: #666; }
+
+footer {
+  background-color: #ffffff;
+  text-align: center;
+  padding: 25px 15px;
+  font-size: 14px;
+  color: #000;
+  border-top: 1px solid #ccc;
+}
 </style>
 </head>
 <body>
+
 <main>
 <header>
   <img src="logo.jpg" alt="Department Logo">
@@ -87,6 +100,7 @@ textarea:disabled { background-color: #eee; color: #666; }
 </main>
 
 <script>
+// --- Firebase configuration ---
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -98,6 +112,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// --- Presenters ---
 const presentationsBySeminar = {
   "Seminar 1": ["Marko Boskovic", "Pratibha Choudhari", "Samanta Rožánková", "Yu-Wei Tu"],
   "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Büşra Buse Tütüncü", "Botond Bolgár"],
@@ -109,6 +124,8 @@ const presentationsBySeminar = {
 
 const presDiv = document.getElementById("presentations");
 const seminarSelect = document.getElementById("seminar");
+
+// --- Render presentations ---
 function renderPresentations(seminar) {
   presDiv.innerHTML = '';
   if(!seminar) return;
@@ -131,15 +148,21 @@ function renderPresentations(seminar) {
       </div>
     `;
     presDiv.appendChild(block);
+
     const checkbox = block.querySelector(`#nocmt${i+1}`);
     const textarea = block.querySelector(`#comment${i+1}`);
-    checkbox.addEventListener('change', ()=>{ textarea.disabled = checkbox.checked; if(checkbox.checked) textarea.value = ""; });
+    checkbox.addEventListener('change', ()=>{
+      if(checkbox.checked){ textarea.disabled = true; textarea.value = ""; }
+      else textarea.disabled = false;
+    });
   });
 }
 seminarSelect.addEventListener('change', e=>renderPresentations(e.target.value));
 
+// --- Submit ---
 const form = document.getElementById('voteForm');
 const message = document.getElementById('message');
+
 form.addEventListener('submit', async e=>{
   e.preventDefault();
   const participantId = document.getElementById('participantId').value.trim();
@@ -147,25 +170,55 @@ form.addEventListener('submit', async e=>{
   const presNames = presentationsBySeminar[seminar] || [];
   let presentations = [];
 
-  if(!participantId || !seminar){ message.textContent = 'Please fill in all required fields.'; message.className = 'error'; return; }
+  if(!participantId || !seminar){
+    message.textContent = 'Please fill in all required fields.';
+    message.className = 'error';
+    return;
+  }
 
   for(let i=0;i<presNames.length;i++){
     const score = document.getElementById(`pres${i+1}`).value;
     const comment = document.getElementById(`comment${i+1}`).value.trim();
     const noCommentChecked = document.getElementById(`nocmt${i+1}`).checked;
-    if(!score){ message.textContent = 'Please fill in a score for each presentation.'; message.className = 'error'; return; }
-    presentations.push({ name: presNames[i], score: parseInt(score), comment: noCommentChecked ? "" : comment });
+
+    if(!score){
+      message.textContent = 'Please fill in a score for each presentation.';
+      message.className = 'error';
+      return;
+    }
+
+    presentations.push({
+      name: presNames[i],
+      score: parseInt(score),
+      comment: noCommentChecked ? "" : comment
+    });
   }
 
   try{
     const docRef = db.collection('votes').doc(`${participantId}_${seminar}`);
     const doc = await docRef.get();
-    if(doc.exists){ message.textContent = 'You have already submitted an evaluation for this seminar.'; message.className = 'error'; return; }
-    await docRef.set({ participantId, seminar, presentations, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    if(doc.exists){
+      message.textContent = 'You have already submitted an evaluation for this seminar.';
+      message.className = 'error';
+      return;
+    }
+
+    await docRef.set({
+      participantId,
+      seminar,
+      presentations,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
     message.textContent = 'Evaluation submitted successfully. Thank you!';
     message.className = 'success';
-    form.reset(); presDiv.innerHTML = '';
-  }catch(err){ console.error(err); message.textContent = 'An error occurred while submitting.'; message.className = 'error'; }
+    form.reset();
+    presDiv.innerHTML = '';
+  }catch(err){
+    console.error(err);
+    message.textContent = 'An error occurred while submitting.';
+    message.className = 'error';
+  }
 });
 </script>
 
