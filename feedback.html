@@ -2,15 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PhD Seminar Evaluation</title>
+<title>PhD Seminar Feedback</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
 }
@@ -19,44 +21,76 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Vertikální centrování */
-  align-items: center;     /* Horizontální centrování */
-  max-width: 800px;
+  align-items: center;
   width: 100%;
-  margin: 0 auto;
-  padding: 30px 20px;
+  padding: 40px 0;
 }
 
 header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
 header img {
-  height: 120px;
-  margin-bottom: 10px;
+  height: 130px;
+  margin-bottom: 20px;
 }
 
 header h1 {
   margin: 0;
   color: #333;
-  font-size: 28px;
-  text-align: center;
+  font-size: 26px;
 }
 
-label { display:block; margin-top:15px; font-weight:bold; }
-input, select, textarea, button { width:100%; padding:8px; margin-top:5px; border-radius:4px; border:1px solid #ccc; box-sizing:border-box; }
-textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
-button { font-size:16px; margin-top:10px; cursor: pointer; }
-.success { color: green; margin-top:20px; }
-.error { color: red; margin-top:20px; }
-.presentation-block { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-top: 20px; background: #fafafa; box-shadow: 1px 1px 5px rgba(0,0,0,0.05); }
-.presentation-block h3 { margin-top: 0; color: #444; }
-.checkbox-row { display: flex; align-items: center; margin-top: 5px; gap: 5px; }
-.checkbox-row input[type="checkbox"] { width: auto; cursor:pointer; }
-textarea:disabled { background-color: #eee; color: #666; }
+input {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: 90%;
+  max-width: 300px;
+}
+
+button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #4CAF50;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #45a049;
+}
+
+.error {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.comment-box {
+  width: 100%;
+  max-width: 600px;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+  border-left: 4px solid #4CAF50;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 footer {
   background-color: #ffffff;
@@ -69,165 +103,187 @@ footer {
 </style>
 </head>
 <body>
-
 <main>
-<header>
-  <img src="logo.jpg" alt="Department Logo">
-  <h1>PhD Seminar Evaluation</h1>
-</header>
+  <header>
+    <img src="logo.jpg" alt="Department Logo">
+    <h1>Feedback from the PhD Seminar</h1>
+  </header>
 
-<form id="voteForm">
-  <label for="participantId">Participant ID</label>
-  <input type="text" id="participantId" required>
+  <div id="loginForm">
+    <input type="email" id="email" placeholder="Enter your email"><br>
+    <input type="password" id="password" placeholder="Enter your password"><br>
+    <button id="loginBtn">Show Feedback</button>
+    <div id="errorMsg" class="error"></div>
+  </div>
 
-  <label for="seminar">Select seminar</label>
-  <select id="seminar" required>
-    <option value="">--Select--</option>
-    <option value="Seminar 1">Seminar 1 on 14th November 2025</option>
-    <option value="Seminar 2">Seminar 2 on 12th December 2025</option>
-    <option value="Seminar 3">Seminar 3 on 16th January 2026</option>
-    <option value="Seminar 4">Seminar 4 on 13th February 2026</option>
-    <option value="Seminar 5">Seminar 5 on 10th April 2026</option>
-    <option value="Seminar 6">Seminar 6 on 15th May 2026</option>
-  </select>
+  <div id="comments" style="display:none;"></div>
 
-  <div id="presentations"></div>
-
-  <button type="submit">Submit evaluation</button>
-</form>
-
-<div id="message"></div>
+  <div id="changePasswordForm" style="margin-top:20px; display:none;">
+    <h3>Change Password</h3>
+    <input type="password" id="newPassword" placeholder="Enter new password"><br>
+    <button id="changePasswordBtn">Update Password</button>
+    <div id="passwordMsg" class="error"></div>
+  </div>
 </main>
 
+<footer>
+  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
+  <p style="margin: 6px 0;">
+    © 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
+  </p>
+  <p style="margin: 6px 0;">
+    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
+    Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz
+  </p>
+  <p style="margin: 6px 0;">
+    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
+      https://orgchem.natur.cuni.cz
+    </a>
+  </p>
+</footer>
+
 <script>
-// --- Firebase configuration ---
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
   projectId: "phd-seminar-voting",
   storageBucket: "phd-seminar-voting.firebasestorage.app",
   messagingSenderId: "1042633812969",
-  appId: "1:1042633812969:web:7fa70745a53338ec5ab978"
+  appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
+  measurementId: "G-2JQDJWPH7L"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- Presenters ---
-const presentationsBySeminar = {
-  "Seminar 1": ["Marko Boskovic", "Pratibha Choudhari", "Samanta Rožánková", "Yu-Wei Tu"],
-  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Büşra Buse Tütüncü", "Botond Bolgár"],
-  "Seminar 3": ["Najam Ul Sahar", "Jialu Li", "Pipatpon Raksapon", "Ondřej Daněk"],
-  "Seminar 4": ["Filip Trajhan", "Alicia León Rodríguez", "Pallavi Halkarni", "Andrea Vopálenská"],
-  "Seminar 5": ["Ondřej Hladík", "Donna Martínez Lopéz", "Shubham Bhatt", "Jakub Krištof", "Nidhi Sinha"],
-  "Seminar 6": ["Anna-Marie Dušková", "Lucie Černá", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
+const emailToName = {
+  "bolgarb@natur.cuni.cz": "Botond Bolgár",
+  "vopalena@natur.cuni.cz": "Andrea Vopálenská",
+  "najamulsahar@yahoo.com": "Najam Ul Sahar",
+  "busetutuncu1@gmail.com": "Büşra Buse Tütüncü",
+  "tuyuturtle@gmail.com": "Yu-Wei Tu",
+  "trajhanf@natur.cuni.cz": "Filip Trajhan",
+  "nidhi21155@gmail.com": "Nidhi Sinha",
+  "sandyncc2792@gmail.com": "Sandip Baban Shinde",
+  "rozankovasamanta@gmail.com": "Samanta Rožánková",
+  "pipatpon.gong@gmail.com": "Pipatpon Raksapon",
+  "martinedon@natur.cuni.cz": "Donna Martínez Lopéz",
+  "ja.kubo@outlook.com": "Jakub Krištof",
+  "ema.bazikova@uochb.cas.cz": "Ema Bažíková",
+  "abc16685782@gmail.com": "Jialu Li",
+  "b.kieftenbelt@outlook.com": "Bart Kieftenbelt",
+  "jyotpreet.kaur@natur.cuni.cz": "Jyotpreet Kaur",
+  "choudhapr@natur.cuni.cz": "Pratibha Choudhari",
+  "hladik.ondrej@natur.cuni.cz": "Ondřej Hladík",
+  "pallavihalkarni0704@gmail.com": "Pallavi Halkarni",
+  "ondrej.danek4@gmail.com": "Ondřej Daněk",
+  "cernalucie3@natur.cuni.cz": "Lucie Černá",
+  "shubham.bhatt@natur.cuni.cz": "Shubham Bhatt",
+  "marko.boskovic@uochb.cas.cz": "Marko Boskovic",
+  "bukovaa@natur.cuni.cz": "Anna-Marie Dušková",
+  "kunakd@natur.cuni.cz": "Dominik Kunák",
+  "leonroda@natur.cuni.cz": "Alicia León Rodríguez"
 };
 
-const presDiv = document.getElementById("presentations");
-const seminarSelect = document.getElementById("seminar");
+// Přihlášení
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("password").value;
+  const errorMsg = document.getElementById("errorMsg");
+  const commentsDiv = document.getElementById("comments");
+  commentsDiv.innerHTML = "";
+  errorMsg.textContent = "";
 
-// --- Render presentations ---
-function renderPresentations(seminar) {
-  presDiv.innerHTML = '';
-  if(!seminar) return;
-  const presNames = presentationsBySeminar[seminar] || [];
-  presNames.forEach((name,i)=>{
-    const block = document.createElement("div");
-    block.className = "presentation-block";
-    block.innerHTML = `
-      <h3>${name}</h3>
-      <label for="pres${i+1}">Score (1 = worst, 10 = best)</label>
-      <select id="pres${i+1}" required>
-        <option value="">--Select--</option>
-        ${Array.from({length:10}, (_,j)=>`<option value="${j+1}">${j+1}</option>`).join("")}
-      </select>
-      <label for="comment${i+1}">What should be improved?</label>
-      <textarea id="comment${i+1}" rows="3"></textarea>
-      <div class="checkbox-row">
-        <input type="checkbox" id="nocmt${i+1}">
-        <label for="nocmt${i+1}">No comments</label>
-      </div>
-    `;
-    presDiv.appendChild(block);
-
-    const checkbox = block.querySelector(`#nocmt${i+1}`);
-    const textarea = block.querySelector(`#comment${i+1}`);
-    checkbox.addEventListener('change', ()=>{
-      if(checkbox.checked){ textarea.disabled = true; textarea.value = ""; }
-      else textarea.disabled = false;
-    });
-  });
-}
-seminarSelect.addEventListener('change', e=>renderPresentations(e.target.value));
-
-// --- Submit ---
-const form = document.getElementById('voteForm');
-const message = document.getElementById('message');
-
-form.addEventListener('submit', async e=>{
-  e.preventDefault();
-  const participantId = document.getElementById('participantId').value.trim();
-  const seminar = seminarSelect.value;
-  const presNames = presentationsBySeminar[seminar] || [];
-  let presentations = [];
-
-  if(!participantId || !seminar){
-    message.textContent = 'Please fill in all required fields.';
-    message.className = 'error';
+  if (!email || !pass) {
+    errorMsg.textContent = "Please enter email and password.";
     return;
   }
 
-  for(let i=0;i<presNames.length;i++){
-    const score = document.getElementById(`pres${i+1}`).value;
-    const comment = document.getElementById(`comment${i+1}`).value.trim();
-    const noCommentChecked = document.getElementById(`nocmt${i+1}`).checked;
+  try {
+    const userCredential = await firebase.auth().signInWithEmailAndPassword(email, pass);
+    const user = userCredential.user;
 
-    if(!score){
-      message.textContent = 'Please fill in a score for each presentation.';
-      message.className = 'error';
+    const presenterName = emailToName[user.email];
+    if (!presenterName) {
+      errorMsg.textContent = "Email not mapped to a presenter.";
       return;
     }
 
-    presentations.push({
-      name: presNames[i],
-      score: parseInt(score),
-      comment: noCommentChecked ? "" : comment
+    document.getElementById("loginForm").style.display = "none";
+    commentsDiv.style.display = "block";
+
+    const userDocRef = db.collection('users').doc(user.email);
+    const userDoc = await userDocRef.get();
+    let passwordChanged = false;
+
+    if (userDoc.exists) {
+      passwordChanged = userDoc.data().passwordChanged || false;
+    } else {
+      await userDocRef.set({ name: presenterName, passwordChanged: false });
+    }
+
+    if (!passwordChanged) {
+      document.getElementById("changePasswordForm").style.display = "block";
+    } else {
+      document.getElementById("changePasswordForm").style.display = "none";
+    }
+
+    const snapshot = await db.collection('votes').get();
+    let feedbacks = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.presentations && Array.isArray(data.presentations)) {
+        data.presentations.forEach(p => {
+          if (p.name === presenterName && p.comment && p.comment.trim() !== "") {
+            feedbacks.push(p.comment);
+          }
+        });
+      }
     });
+
+    if (feedbacks.length === 0) {
+      commentsDiv.innerHTML = "<p>No feedback submitted yet for this presenter.</p>";
+    } else {
+      feedbacks.forEach(c => {
+        const box = document.createElement("div");
+        box.className = "comment-box";
+        box.textContent = c;
+        commentsDiv.appendChild(box);
+      });
+    }
+
+  } catch (error) {
+    errorMsg.textContent = "Login failed: " + error.message;
+  }
+});
+
+// Změna hesla
+document.getElementById("changePasswordBtn").addEventListener("click", async () => {
+  const newPass = document.getElementById("newPassword").value;
+  const passwordMsg = document.getElementById("passwordMsg");
+  passwordMsg.textContent = "";
+  const user = firebase.auth().currentUser;
+
+  if (!user) {
+    passwordMsg.textContent = "You must be logged in to change password.";
+    return;
+  }
+  if (!newPass) {
+    passwordMsg.textContent = "Please enter a new password.";
+    return;
   }
 
-  try{
-    const docRef = db.collection('votes').doc(`${participantId}_${seminar}`);
-    const doc = await docRef.get();
-    if(doc.exists){
-      message.textContent = 'You have already submitted an evaluation for this seminar.';
-      message.className = 'error';
-      return;
-    }
-
-    await docRef.set({
-      participantId,
-      seminar,
-      presentations,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    message.textContent = 'Evaluation submitted successfully. Thank you!';
-    message.className = 'success';
-    form.reset();
-    presDiv.innerHTML = '';
-  }catch(err){
-    console.error(err);
-    message.textContent = 'An error occurred while submitting.';
-    message.className = 'error';
+  try {
+    await user.updatePassword(newPass);
+    await db.collection('users').doc(user.email).set({ passwordChanged: true }, { merge: true });
+    passwordMsg.style.color = "green";
+    passwordMsg.textContent = "Password updated successfully!";
+    document.getElementById("changePasswordForm").style.display = "none";
+  } catch (error) {
+    passwordMsg.style.color = "red";
+    passwordMsg.textContent = "Error: " + error.message;
   }
 });
 </script>
-
-<footer>
-  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
-  <p style="margin: 6px 0;">© 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague</p>
-  <p style="margin: 6px 0;">Hlavova 2030/8, Prague 2, 128 00 &nbsp;|&nbsp; Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz</p>
-  <p style="margin: 6px 0;"><a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">https://orgchem.natur.cuni.cz</a></p>
-</footer>
 
 </body>
 </html>
