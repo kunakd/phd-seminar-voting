@@ -7,14 +7,23 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
-body {
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
   font-family: Arial, sans-serif;
   background: #ffffff;
-  margin: 0;
-  padding: 40px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  padding: 40px 0;
 }
 
 header {
@@ -90,32 +99,48 @@ footer {
   font-size: 14px;
   color: #000;
   border-top: 1px solid #ccc;
-  margin-top: 60px;
 }
 </style>
 </head>
 <body>
+<main>
+  <header>
+    <img src="logo.jpg" alt="Department Logo">
+    <h1>Feedback from the PhD Seminar</h1>
+  </header>
 
-<header>
-  <img src="logo.jpg" alt="Department Logo">
-  <h1>Feedback from the PhD Seminar</h1>
-</header>
+  <div id="loginForm">
+    <input type="email" id="email" placeholder="Enter your email"><br>
+    <input type="password" id="password" placeholder="Enter your password"><br>
+    <button id="loginBtn">Show Feedback</button>
+    <div id="errorMsg" class="error"></div>
+  </div>
 
-<div id="loginForm">
-  <input type="email" id="email" placeholder="Enter your email"><br>
-  <input type="password" id="password" placeholder="Enter your password"><br>
-  <button id="loginBtn">Show Feedback</button>
-  <div id="errorMsg" class="error"></div>
-</div>
+  <div id="comments" style="display:none;"></div>
 
-<div id="comments" style="display:none;"></div>
+  <div id="changePasswordForm" style="margin-top:20px; display:none;">
+    <h3>Change Password</h3>
+    <input type="password" id="newPassword" placeholder="Enter new password"><br>
+    <button id="changePasswordBtn">Update Password</button>
+    <div id="passwordMsg" class="error"></div>
+  </div>
+</main>
 
-<div id="changePasswordForm" style="margin-top:20px; display:none;">
-  <h3>Change Password</h3>
-  <input type="password" id="newPassword" placeholder="Enter new password"><br>
-  <button id="changePasswordBtn">Update Password</button>
-  <div id="passwordMsg" class="error"></div>
-</div>
+<footer>
+  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
+  <p style="margin: 6px 0;">
+    © 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
+  </p>
+  <p style="margin: 6px 0;">
+    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
+    Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz
+  </p>
+  <p style="margin: 6px 0;">
+    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
+      https://orgchem.natur.cuni.cz
+    </a>
+  </p>
+</footer>
 
 <script>
 const firebaseConfig = {
@@ -183,7 +208,6 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       return;
     }
 
-    // Schovat login formulář a zobrazit komentáře
     document.getElementById("loginForm").style.display = "none";
     commentsDiv.style.display = "block";
 
@@ -260,22 +284,6 @@ document.getElementById("changePasswordBtn").addEventListener("click", async () 
   }
 });
 </script>
-
-<footer>
-  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
-  <p style="margin: 6px 0;">
-    © 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
-  </p>
-  <p style="margin: 6px 0;">
-    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
-    Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz
-  </p>
-  <p style="margin: 6px 0;">
-    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
-      https://orgchem.natur.cuni.cz
-    </a>
-  </p>
-</footer>
 
 </body>
 </html>
