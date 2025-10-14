@@ -7,7 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 html, body {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   font-family: Arial;
@@ -15,16 +15,11 @@ html, body {
   flex-direction: column;
 }
 
-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* Vertikální centrování */
-  align-items: center;     /* Horizontální centrování */
+body {
   max-width: 800px;
-  width: 100%;
   margin: 0 auto;
   padding: 30px 20px;
+  flex: 1;
 }
 
 header {
@@ -34,17 +29,8 @@ header {
   margin-bottom: 30px;
 }
 
-header img {
-  height: 120px;
-  margin-bottom: 10px;
-}
-
-header h1 {
-  margin: 0;
-  color: #333;
-  font-size: 28px;
-  text-align: center;
-}
+header img { height: 120px; margin-bottom: 10px; }
+header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 
 label { display:block; margin-top:15px; font-weight:bold; }
 input, select, textarea, button { width:100%; padding:8px; margin-top:5px; border-radius:4px; border:1px solid #ccc; box-sizing:border-box; }
@@ -65,12 +51,12 @@ footer {
   font-size: 14px;
   color: #000;
   border-top: 1px solid #ccc;
+  margin-top: auto; /* Footer vždy dole */
 }
 </style>
 </head>
 <body>
 
-<main>
 <header>
   <img src="logo.jpg" alt="Department Logo">
   <h1>PhD Seminar Evaluation</h1>
@@ -97,10 +83,9 @@ footer {
 </form>
 
 <div id="message"></div>
-</main>
 
 <script>
-// --- Firebase configuration ---
+// Firebase config a logika formuláře zůstává stejná jako předtím
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -112,7 +97,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- Presenters ---
 const presentationsBySeminar = {
   "Seminar 1": ["Marko Boskovic", "Pratibha Choudhari", "Samanta Rožánková", "Yu-Wei Tu"],
   "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Büşra Buse Tütüncü", "Botond Bolgár"],
@@ -125,7 +109,6 @@ const presentationsBySeminar = {
 const presDiv = document.getElementById("presentations");
 const seminarSelect = document.getElementById("seminar");
 
-// --- Render presentations ---
 function renderPresentations(seminar) {
   presDiv.innerHTML = '';
   if(!seminar) return;
@@ -148,7 +131,6 @@ function renderPresentations(seminar) {
       </div>
     `;
     presDiv.appendChild(block);
-
     const checkbox = block.querySelector(`#nocmt${i+1}`);
     const textarea = block.querySelector(`#comment${i+1}`);
     checkbox.addEventListener('change', ()=>{
@@ -157,9 +139,9 @@ function renderPresentations(seminar) {
     });
   });
 }
+
 seminarSelect.addEventListener('change', e=>renderPresentations(e.target.value));
 
-// --- Submit ---
 const form = document.getElementById('voteForm');
 const message = document.getElementById('message');
 
