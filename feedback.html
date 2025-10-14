@@ -9,7 +9,7 @@
 <style>
 body {
   font-family: Arial, sans-serif;
-  background: #ffffff; /* bílé pozadí celé stránky */
+  background: #ffffff;
   margin: 0;
   padding: 40px 0;
   display: flex;
@@ -21,7 +21,7 @@ header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 40px; /* odsazení od formuláře */
+  margin-bottom: 40px;
 }
 
 header img {
@@ -78,7 +78,6 @@ button:hover {
   animation: fadeIn 0.5s ease forwards;
 }
 
-/* Fade-in animace */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -109,7 +108,7 @@ footer {
   <div id="errorMsg" class="error"></div>
 </div>
 
-<div id="comments"></div>
+<div id="comments" style="display:none;"></div>
 
 <div id="changePasswordForm" style="margin-top:20px; display:none;">
   <h3>Change Password</h3>
@@ -119,7 +118,6 @@ footer {
 </div>
 
 <script>
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -132,7 +130,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Email → jméno prezentujícího
 const emailToName = {
   "bolgarb@natur.cuni.cz": "Botond Bolgár",
   "vopalena@natur.cuni.cz": "Andrea Vopálenská",
@@ -186,6 +183,10 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       return;
     }
 
+    // Schovat login formulář a zobrazit komentáře
+    document.getElementById("loginForm").style.display = "none";
+    commentsDiv.style.display = "block";
+
     const userDocRef = db.collection('users').doc(user.email);
     const userDoc = await userDocRef.get();
     let passwordChanged = false;
@@ -193,10 +194,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     if (userDoc.exists) {
       passwordChanged = userDoc.data().passwordChanged || false;
     } else {
-      await userDocRef.set({
-        name: presenterName,
-        passwordChanged: false
-      });
+      await userDocRef.set({ name: presenterName, passwordChanged: false });
     }
 
     if (!passwordChanged) {
