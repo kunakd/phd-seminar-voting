@@ -9,7 +9,7 @@
 <style>
 body {
   font-family: Arial, sans-serif;
-  background: #f0f0f0;
+  background: #ffffff; /* bílé pozadí celé stránky */
   margin: 0;
   padding: 40px 0;
   display: flex;
@@ -17,25 +17,16 @@ body {
   align-items: center;
 }
 
-.container {
-  background: #ffffff;
-  width: 100%;
-  max-width: 700px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  padding: 30px;
-}
-
 header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 40px; /* odsazení od formuláře */
 }
 
 header img {
-  height: 120px;
-  margin-bottom: 15px;
+  height: 130px;
+  margin-bottom: 20px;
 }
 
 header h1 {
@@ -87,62 +78,45 @@ button:hover {
   animation: fadeIn 0.5s ease forwards;
 }
 
-/* jemná fade-in animace pro komentáře */
+/* Fade-in animace */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-</style>
-</head>
-<body>
 
-<div class="container">
-  <header>
-    <img src="logo.jpg" alt="Department Logo">
-    <h1>Feedback from the PhD Seminar</h1>
-  </header>
-
-  <div id="loginForm">
-    <input type="email" id="email" placeholder="Enter your email"><br>
-    <input type="password" id="password" placeholder="Enter your password"><br>
-    <button id="loginBtn">Show Feedback</button>
-    <div id="errorMsg" class="error"></div>
-  </div>
-
-  <div id="comments"></div>
-
-  <div id="changePasswordForm" style="margin-top:20px; display:none;">
-    <h3>Change Password</h3>
-    <input type="password" id="newPassword" placeholder="Enter new password"><br>
-    <button id="changePasswordBtn">Update Password</button>
-    <div id="passwordMsg" class="error"></div>
-  </div>
-</div>
-
-<footer style="
+footer {
   background-color: #ffffff;
   text-align: center;
   padding: 25px 15px;
   font-size: 14px;
   color: #000;
   border-top: 1px solid #ccc;
-  margin-top: 40px;
-  width: 100%;
-">
-  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
-  <p style="margin: 6px 0;">
-    © 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
-  </p>
-  <p style="margin: 6px 0;">
-    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
-    Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz
-  </p>
-  <p style="margin: 6px 0;">
-    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
-      https://orgchem.natur.cuni.cz
-    </a>
-  </p>
-</footer>
+  margin-top: 60px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="logo.jpg" alt="Department Logo">
+  <h1>Feedback from the PhD Seminar</h1>
+</header>
+
+<div id="loginForm">
+  <input type="email" id="email" placeholder="Enter your email"><br>
+  <input type="password" id="password" placeholder="Enter your password"><br>
+  <button id="loginBtn">Show Feedback</button>
+  <div id="errorMsg" class="error"></div>
+</div>
+
+<div id="comments"></div>
+
+<div id="changePasswordForm" style="margin-top:20px; display:none;">
+  <h3>Change Password</h3>
+  <input type="password" id="newPassword" placeholder="Enter new password"><br>
+  <button id="changePasswordBtn">Update Password</button>
+  <div id="passwordMsg" class="error"></div>
+</div>
 
 <script>
 // Firebase config
@@ -212,7 +186,6 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       return;
     }
 
-    // Najdeme dokument v "users"
     const userDocRef = db.collection('users').doc(user.email);
     const userDoc = await userDocRef.get();
     let passwordChanged = false;
@@ -226,10 +199,12 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       });
     }
 
-    // Zobrazení/skrývání formuláře pro změnu hesla
-    document.getElementById("changePasswordForm").style.display = passwordChanged ? "none" : "block";
+    if (!passwordChanged) {
+      document.getElementById("changePasswordForm").style.display = "block";
+    } else {
+      document.getElementById("changePasswordForm").style.display = "none";
+    }
 
-    // Načtení feedbacků
     const snapshot = await db.collection('votes').get();
     let feedbacks = [];
     snapshot.forEach(doc => {
@@ -246,10 +221,9 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     if (feedbacks.length === 0) {
       commentsDiv.innerHTML = "<p>No feedback submitted yet for this presenter.</p>";
     } else {
-      feedbacks.forEach((c, i) => {
+      feedbacks.forEach(c => {
         const box = document.createElement("div");
         box.className = "comment-box";
-        box.style.animationDelay = `${i * 0.08}s`; // pozvolné zpoždění animace
         box.textContent = c;
         commentsDiv.appendChild(box);
       });
@@ -288,6 +262,22 @@ document.getElementById("changePasswordBtn").addEventListener("click", async () 
   }
 });
 </script>
+
+<footer>
+  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
+  <p style="margin: 6px 0;">
+    © 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
+  </p>
+  <p style="margin: 6px 0;">
+    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
+    Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz
+  </p>
+  <p style="margin: 6px 0;">
+    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
+      https://orgchem.natur.cuni.cz
+    </a>
+  </p>
+</footer>
 
 </body>
 </html>
