@@ -1,26 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>PhD Seminar Evaluation</title>
+
+<!-- Firebase compat libraries (as in your original) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
-body { font-family: Arial; max-width: 800px; margin: 30px auto; padding: 20px; }
-header { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
-header img { height: 120px; margin-bottom: 10px; }
-header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
-label { display:block; margin-top:15px; font-weight:bold; }
-input, select, textarea, button { width:100%; padding:8px; margin-top:5px; border-radius:4px; border:1px solid #ccc; box-sizing:border-box; }
-textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
-button { font-size:16px; margin-top:10px; cursor: pointer; }
-.success { color: green; margin-top:20px; }
-.error { color: red; margin-top:20px; }
-.presentation-block { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-top: 20px; background: #fafafa; box-shadow: 1px 1px 5px rgba(0,0,0,0.05);}
-.presentation-block h3 { margin-top: 0; color: #444; }
-.checkbox-row { display: flex; align-items: center; margin-top: 5px; gap: 5px; }
-.checkbox-row input[type="checkbox"] { width: auto; cursor:pointer; }
-textarea:disabled { background-color: #eee; color: #666; }
+  :root{
+    --brand:#003366;
+    --muted:#666;
+    --bg:#f5f6f8;
+    --card:#ffffff;
+  }
+  html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#111;}
+  header{background:var(--brand);color:#fff;padding:18px 12px;text-align:center}
+  header img{height:80px;display:block;margin:0 auto 8px}
+  header h1{margin:0;font-size:20px}
+  .container{max-width:900px;margin:18px auto;padding:20px;background:var(--card);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+  form{display:block}
+  .row{display:flex;gap:12px;align-items:center}
+  label{display:block;font-weight:600;margin-top:12px}
+  input[type="text"], select, textarea, input[type="number"]{
+    width:100%;padding:10px;border:1px solid #d0d5d9;border-radius:6px;box-sizing:border-box;font-size:15px;margin-top:6px;
+  }
+  .presentations{margin-top:14px}
+  .presentation-block{border:1px solid #e3e6ea;border-radius:8px;padding:12px;background:#fcfdff;margin-bottom:12px}
+  .presentation-block h3{margin:0 0 10px 0;font-size:16px;color:#123}
+  .checkbox-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .info{font-size:13px;color:var(--muted);margin-top:8px}
+  .actions{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+  button{background:var(--brand);color:#fff;border:0;padding:12px 16px;border-radius:8px;font-size:15px;cursor:pointer}
+  button[disabled]{opacity:0.6;cursor:not-allowed}
+  .status{margin-top:12px;font-weight:600}
+  .status.success{color:green}
+  .status.error{color:#b00020}
+
+  footer{margin-top:18px;background:#fff;padding:18px;border-top:1px solid #e6e6e6;text-align:center;font-size:13px;color:#111}
+
+  @media (max-width:720px){
+    .row{flex-direction:column;align-items:stretch}
+    header img{height:64px}
+    .container{margin:10px}
+  }
 </style>
 </head>
 <body>
@@ -28,32 +53,41 @@ textarea:disabled { background-color: #eee; color: #666; }
 <header>
   <img src="logo.jpg" alt="Department Logo">
   <h1>PhD Seminar Evaluation</h1>
+  <div style="font-size:13px;margin-top:6px">Please submit one evaluation per seminar. UI language: English</div>
 </header>
 
-<form id="voteForm">
-  <label for="participantId">Participant ID</label>
-  <input type="text" id="participantId" required>
+<main class="container" role="main">
+  <p class="info">This form records scores (1 = worst, 10 = best) and optional comments. Progress is saved automatically in your browser. Voting opens the day before the seminar; there is no closing date.</p>
 
-  <label for="seminar">Select seminar</label>
-  <select id="seminar" required>
-    <option value="">--Select--</option>
-    <option value="Seminar 1">Seminar 1 on 14th November 2025</option>
-    <option value="Seminar 2">Seminar 2 on 12th December 2025</option>
-    <option value="Seminar 3">Seminar 3 on 16th January 2026</option>
-    <option value="Seminar 4">Seminar 4 on 13th February 2026</option>
-    <option value="Seminar 5">Seminar 5 on 10th April 2026</option>
-    <option value="Seminar 6">Seminar 6 on 15th May 2026</option>
-  </select>
+  <form id="voteForm" autocomplete="off" novalidate>
+    <label for="participantId">Participant ID (use your identifier)</label>
+    <input id="participantId" type="text" required placeholder="e.g. s12345 or your email prefix">
 
-  <div id="presentations"></div>
+    <label for="seminar">Select seminar</label>
+    <select id="seminar" required>
+      <option value="">-- Select --</option>
+    </select>
 
-  <button type="submit">Submit evaluation</button>
-</form>
+    <div id="presentations" class="presentations" aria-live="polite"></div>
 
-<div id="message"></div>
+    <div class="actions">
+      <button id="submitBtn" type="submit">Submit evaluation</button>
+      <button id="clearDraft" type="button" style="background:#777">Clear saved draft</button>
+    </div>
+
+    <div id="message" class="status" role="status" aria-live="polite"></div>
+  </form>
+</main>
+
+<footer>
+  <img src="logo.jpg" alt="Faculty Logo" style="height:36px;margin-bottom:8px;">
+  <div>© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</div>
+  <div style="margin-top:6px;font-size:13px;color:var(--muted)">Hlavova 2030/8, Prague 2, 128 00 | Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</div>
+  <div style="margin-top:6px"><a href="https://orgchem.natur.cuni.cz/" target="_blank" rel="noopener" style="color:var(--brand)">orgchem.natur.cuni.cz</a></div>
+</footer>
 
 <script>
-// --- Firebase configuration ---
+/* ========== Firestore init ========== */
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -65,7 +99,21 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- Presenters ---
+// Enable persistence (offline caching). If not supported, ignore.
+firebase.firestore().enablePersistence().catch(function(err) {
+  console.warn('Persistence not enabled:', err && err.code ? err.code : err);
+});
+
+/* ========== Seminar data (hard-coded) ========== */
+const seminars = [
+  { name: "Seminar 1", date: "2025-11-14" },
+  { name: "Seminar 2", date: "2025-12-12" },
+  { name: "Seminar 3", date: "2026-01-16" },
+  { name: "Seminar 4", date: "2026-02-13" },
+  { name: "Seminar 5", date: "2026-04-10" },
+  { name: "Seminar 6", date: "2026-05-15" }
+];
+
 const presentationsBySeminar = {
   "Seminar 1": ["Marko Boskovic", "Büşra Buse Tütüncü", "Samanta Rožánková", "Yu-Wei Tu"],
   "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Pratibha Choudhari", "Botond Bolgár"],
@@ -75,137 +123,274 @@ const presentationsBySeminar = {
   "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
-const presDiv = document.getElementById("presentations");
-const seminarSelect = document.getElementById("seminar");
+/* ========== DOM references ========== */
+const seminarSelect = document.getElementById('seminar');
+const presDiv = document.getElementById('presentations');
+const form = document.getElementById('voteForm');
+const participantInput = document.getElementById('participantId');
+const messageEl = document.getElementById('message');
+const submitBtn = document.getElementById('submitBtn');
+const clearDraftBtn = document.getElementById('clearDraft');
 
-// --- Render presentations with "No comments" checkbox ---
-function renderPresentations(seminar) {
+let formDirty = false;
+let formSubmitted = false;
+
+/* ========== Utilities ========== */
+function setMessage(text, type = '') {
+  messageEl.textContent = text;
+  messageEl.className = 'status' + (type ? ' ' + type : '');
+}
+
+/* ========== Seminar dropdown: keep opening date only (no close) ========== */
+function updateSeminarDropdown() {
+  seminarSelect.innerHTML = '<option value="">-- Select --</option>';
+  const now = new Date();
+  seminars.forEach(s => {
+    const date = new Date(s.date);
+    const openDate = new Date(date);
+    openDate.setDate(openDate.getDate() - 1); // open the day before
+    const option = document.createElement('option');
+    option.value = s.name;
+    option.textContent = `${s.name} on ${date.toLocaleDateString('en-GB')}`;
+    if (now < openDate) {
+      option.disabled = true;
+      option.textContent += ' (not yet open)';
+      option.title = `Voting opens ${openDate.toLocaleDateString('en-GB')}`;
+    } else {
+      option.title = 'Voting is open';
+    }
+    seminarSelect.appendChild(option);
+  });
+}
+updateSeminarDropdown();
+setInterval(updateSeminarDropdown, 60000);
+
+/* ========== Render presentations for chosen seminar ========== */
+function renderPresentations(seminarName) {
   presDiv.innerHTML = '';
-  if(!seminar) return;
-  const presNames = presentationsBySeminar[seminar] || [];
-  presNames.forEach((name,i)=>{
-    const block = document.createElement("div");
-    block.className = "presentation-block";
+  if (!seminarName) return;
+  const names = presentationsBySeminar[seminarName] || [];
+  names.forEach((name, idx) => {
+    const i = idx + 1;
+    const block = document.createElement('div');
+    block.className = 'presentation-block';
     block.innerHTML = `
       <h3>${name}</h3>
-      <label for="pres${i+1}">Score (1 = worst, 10 = best)</label>
-      <select id="pres${i+1}" required>
-        <option value="">--Select--</option>
-        ${Array.from({length:10}, (_,j)=>`<option value="${j+1}">${j+1}</option>`).join("")}
-      </select>
-      <label for="comment${i+1}">What should be improved?</label>
-      <textarea id="comment${i+1}" rows="3"></textarea>
+      <div class="row">
+        <div style="flex:1">
+          <label for="score${i}">Score (1 - 10)</label>
+          <input id="score${i}" type="number" min="1" max="10" required>
+        </div>
+      </div>
+      <label for="comment${i}">What should be improved? (optional)</label>
+      <textarea id="comment${i}" rows="2" placeholder="Your comment (or leave empty)"></textarea>
       <div class="checkbox-row">
-        <input type="checkbox" id="nocmt${i+1}">
-        <label for="nocmt${i+1}">No comments</label>
+        <input id="nocmt${i}" type="checkbox"><label for="nocmt${i}">No comments</label>
       </div>
     `;
     presDiv.appendChild(block);
 
-    const checkbox = block.querySelector(`#nocmt${i+1}`);
-    const textarea = block.querySelector(`#comment${i+1}`);
+    const scoreEl = block.querySelector(`#score${i}`);
+    const commentEl = block.querySelector(`#comment${i}`);
+    const nocmtEl = block.querySelector(`#nocmt${i}`);
 
-    // --- Enable/disable textarea based on checkbox ---
-    checkbox.addEventListener('change', ()=>{
-      if(checkbox.checked){
-        textarea.disabled = true;
-        textarea.value = "";
-      }else{
-        textarea.disabled = false;
+    // Restore from localStorage if present
+    const savedScore = localStorage.getItem(localKeyForField(seminarName, `score${i}`));
+    if (savedScore !== null) scoreEl.value = savedScore;
+    const savedComment = localStorage.getItem(localKeyForField(seminarName, `comment${i}`));
+    if (savedComment !== null) commentEl.value = savedComment;
+    const savedNoCmt = localStorage.getItem(localKeyForField(seminarName, `nocmt${i}`));
+    if (savedNoCmt === '1') nocmtEl.checked = true, commentEl.disabled = true;
+
+    // events: autosave & nocmt toggle
+    [scoreEl, commentEl].forEach(el => el.addEventListener('input', () => {
+      formDirty = true;
+      localStorage.setItem(localKeyForField(seminarName, el.id), el.value);
+    }));
+    nocmtEl.addEventListener('change', () => {
+      formDirty = true;
+      commentEl.disabled = nocmtEl.checked;
+      if (nocmtEl.checked) {
+        commentEl.value = '';
+        localStorage.removeItem(localKeyForField(seminarName, `comment${i}`));
+        localStorage.setItem(localKeyForField(seminarName, `nocmt${i}`), '1');
+      } else {
+        localStorage.removeItem(localKeyForField(seminarName, `nocmt${i}`));
       }
     });
   });
+
+  // participantId restore for this seminar
+  const savedPid = localStorage.getItem('participantId');
+  if (savedPid && !participantInput.value) participantInput.value = savedPid;
 }
-seminarSelect.addEventListener('change', e=>renderPresentations(e.target.value));
 
-// --- Submit ---
-const form = document.getElementById('voteForm');
-const message = document.getElementById('message');
+/* ========== LocalStorage helpers ========== */
+function localKeyForField(seminarName, fieldId) {
+  // key pattern: draft__<seminar>__<fieldId>
+  return `draft__${seminarName}__${fieldId}`;
+}
+function clearDraftForSeminar(seminarName) {
+  if (!seminarName) return;
+  const names = presentationsBySeminar[seminarName] || [];
+  names.forEach((_, idx) => {
+    const i = idx + 1;
+    localStorage.removeItem(localKeyForField(seminarName, `score${i}`));
+    localStorage.removeItem(localKeyForField(seminarName, `comment${i}`));
+    localStorage.removeItem(localKeyForField(seminarName, `nocmt${i}`));
+  });
+  localStorage.removeItem('participantId');
+}
 
-form.addEventListener('submit', async e=>{
-  e.preventDefault();
-  const participantId = document.getElementById('participantId').value.trim();
+/* ========== Restore form when seminar changed ========== */
+seminarSelect.addEventListener('change', (e) => {
+  renderPresentations(e.target.value);
+  // restore participant id
+  const pid = localStorage.getItem('participantId');
+  if (pid) participantInput.value = pid;
+});
+
+/* Auto-save participantId */
+participantInput.addEventListener('input', () => {
+  formDirty = true;
+  localStorage.setItem('participantId', participantInput.value.trim());
+});
+
+/* Clear draft button */
+clearDraftBtn.addEventListener('click', () => {
   const seminar = seminarSelect.value;
-  const presNames = presentationsBySeminar[seminar] || [];
-  let presentations = [];
-
-  if(!participantId || !seminar){
-    message.textContent = 'Please fill in all required fields.';
-    message.className = 'error';
+  if (!seminar) {
+    setMessage('Choose a seminar first to clear the draft for it.', 'error');
     return;
   }
+  clearDraftForSeminar(seminar);
+  renderPresentations(seminar);
+  setMessage('Draft cleared for selected seminar.', '');
+});
 
-  for(let i=0;i<presNames.length;i++){
-    const score = document.getElementById(`pres${i+1}`).value;
-    const comment = document.getElementById(`comment${i+1}`).value.trim();
-    const noCommentChecked = document.getElementById(`nocmt${i+1}`).checked;
-
-    if(!score){
-      message.textContent = 'Please fill in a score for each presentation.';
-      message.className = 'error';
-      return;
-    }
-
-    presentations.push({
-      name: presNames[i],
-      score: parseInt(score),
-      comment: noCommentChecked ? "" : comment
-    });
-  }
-
-  try{
-    console.log('Submitting vote:', participantId, seminar, presentations);
-
-    const docRef = db.collection('votes').doc(`${participantId}_${seminar}`);
-    const doc = await docRef.get();
-    if(doc.exists){
-      message.textContent = 'You have already submitted an evaluation for this seminar.';
-      message.className = 'error';
-      return;
-    }
-
-    await docRef.set({
-      participantId,
-      seminar,
-      presentations,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    message.textContent = 'Evaluation submitted successfully. Thank you!';
-    message.className = 'success';
-    form.reset();
-    presDiv.innerHTML = '';
-  }catch(err){
-    console.error(err);
-    message.textContent = 'An error occurred while submitting.';
-    message.className = 'error';
+/* Warn user when leaving with unsaved (not submitted) changes */
+window.addEventListener('beforeunload', (e) => {
+  if (formDirty && !formSubmitted) {
+    e.preventDefault();
+    // Chrome requires returnValue to be set
+    e.returnValue = 'You have unsaved changes — your vote is not submitted yet.';
+    return e.returnValue;
   }
 });
-</script>
-<footer style="
-  background-color: #ffffff;
-  text-align: center;
-  padding: 25px 15px;
-  font-size: 14px;
-  color: #000;
-  border-top: 1px solid #ccc;
-  margin-top: 60px;
-">
-  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
-  <p style="margin: 6px 0;">
-    © 2025 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
-  </p>
-  <p style="margin: 6px 0;">
-    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
-    Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz
-  </p>
-  <p style="margin: 6px 0;">
-    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
-      https://orgchem.natur.cuni.cz
-    </a>
-  </p>
-</footer>
 
-  
+/* ========== Submission logic with anti-duplicate protection ========== */
+form.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  setMessage('', '');
+
+  const participantId = participantInput.value.trim();
+  const seminar = seminarSelect.value;
+  if (!participantId) { setMessage('Please enter your Participant ID.', 'error'); return; }
+  if (!seminar) { setMessage('Please select a seminar.', 'error'); return; }
+
+  // gather presentation data
+  const presNames = presentationsBySeminar[seminar] || [];
+  const presentations = [];
+  for (let i = 0; i < presNames.length; i++) {
+    const idx = i + 1;
+    const scoreEl = document.getElementById(`score${idx}`);
+    const commentEl = document.getElementById(`comment${idx}`);
+    const nocmtEl = document.getElementById(`nocmt${idx}`);
+    if (!scoreEl || !scoreEl.value) {
+      setMessage('Please provide a score for each presentation (1–10).', 'error'); return;
+    }
+    const score = parseInt(scoreEl.value, 10);
+    if (Number.isNaN(score) || score < 1 || score > 10) {
+      setMessage('Scores must be numbers between 1 and 10.', 'error'); return;
+    }
+    const comment = (nocmtEl && nocmtEl.checked) ? '' : (commentEl ? commentEl.value.trim() : '');
+    presentations.push({ name: presNames[i], score, comment });
+  }
+
+  // Build vote payload
+  const voteData = {
+    participantId,
+    seminar,
+    presentations,
+    submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  // Use deterministic doc ID to prevent duplicates: <seminar>__<participantId>
+  // This ensures one doc per participant per seminar.
+  const docId = `${seminar}__${participantId}`.replace(/\s+/g, '_');
+  const docRef = db.collection('votes').doc(docId);
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting...';
+
+  try {
+    // Use transaction: if exists -> abort; else write
+    await db.runTransaction(async (tx) => {
+      const docSnapshot = await tx.get(docRef);
+      if (docSnapshot.exists) {
+        throw new Error('ALREADY_SUBMITTED');
+      }
+      tx.set(docRef, voteData);
+    });
+
+    // success
+    formSubmitted = true;
+    formDirty = false;
+    // clear local draft for this seminar
+    clearDraftForSeminar(seminar);
+
+    setMessage('Evaluation submitted successfully. Thank you!', 'success');
+    // optional: disable form to avoid editing after submit
+    submitBtn.textContent = 'Submitted';
+    submitBtn.disabled = true;
+    // keep a visual confirmation
+    // NOTE: keep the inputs readable but disabled
+    Array.from(document.querySelectorAll('#presentations input, #presentations textarea, #presentations select')).forEach(el => el.disabled = true);
+    participantInput.disabled = true;
+    seminarSelect.disabled = true;
+
+  } catch (err) {
+    if (err && err.message === 'ALREADY_SUBMITTED') {
+      setMessage('You have already submitted an evaluation for this seminar (one submission per Participant ID).', 'error');
+    } else {
+      console.error('Submit error', err);
+      // If offline or transient failure, don't clear draft; inform user
+      setMessage('An error occurred while submitting. Your draft is saved locally and will remain until you retry.', 'error');
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit evaluation';
+  }
+});
+
+/* On page load: restore participant and last seminar selection if present */
+(function initFromDraft() {
+  const savedPid = localStorage.getItem('participantId');
+  if (savedPid) participantInput.value = savedPid;
+
+  // If user had previously selected a seminar in the draft, try to restore the first seminar that has draft keys:
+  let restored = false;
+  for (const s of seminars) {
+    const names = presentationsBySeminar[s.name] || [];
+    if (names.length === 0) continue;
+    // check first field existence
+    const key = localKeyForField(s.name, 'score1');
+    if (localStorage.getItem(key) !== null) {
+      seminarSelect.value = s.name;
+      renderPresentations(s.name);
+      restored = true;
+      break;
+    }
+  }
+  if (!restored) {
+    // default no selection, but if some seminars already open, optionally preselect the first open seminar
+    const now = new Date();
+    for (const s of seminars) {
+      const date = new Date(s.date);
+      const openDate = new Date(date); openDate.setDate(openDate.getDate()-1);
+      if (now >= openDate) { seminarSelect.value = s.name; renderPresentations(s.name); break; }
+    }
+  }
+})();
+</script>
 </body>
 </html>
