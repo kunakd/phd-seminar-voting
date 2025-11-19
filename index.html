@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>PhD Seminar Evaluation</title>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
 html, body {
   min-height: 100%;
@@ -66,7 +68,15 @@ footer {
   border-top: 1px solid #ccc;
   margin-top: auto;
 }
+
+/* Mobile optimization */
+@media (max-width: 600px) {
+  body { padding: 15px; }
+  header img { height: 90px; }
+  header h1 { font-size: 22px; }
+}
 </style>
+
 </head>
 <body>
 
@@ -76,8 +86,8 @@ footer {
 </header>
 
 <form id="voteForm">
-  <label for="participantId">Participant ID</label>
-  <input type="text" id="participantId" required>
+  <label for="participantId">Email (Participant ID)</label>
+  <input type="email" id="participantId" required>
 
   <label for="seminar">Select seminar</label>
   <select id="seminar" required>
@@ -92,7 +102,9 @@ footer {
 <div id="message"></div>
 
 <script>
-// --- Firebase config ---
+// -------------------------------------------------------------
+// FIREBASE INIT
+// -------------------------------------------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -104,7 +116,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- Seminar schedule ---
+// -------------------------------------------------------------
+// SEMINARS & PRESENTATIONS
+// -------------------------------------------------------------
 const seminars = [
   { name: "Seminar 1", date: "2025-11-14" },
   { name: "Seminar 2", date: "2025-12-12" },
@@ -123,21 +137,25 @@ const presentationsBySeminar = {
   "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
+// -------------------------------------------------------------
+// DOM ELEMENTS
+// -------------------------------------------------------------
 const seminarSelect = document.getElementById("seminar");
 const presDiv = document.getElementById("presentations");
 const form = document.getElementById("voteForm");
 const message = document.getElementById("message");
 
-// --- Populate seminar dropdown dynamically ---
+// -------------------------------------------------------------
+// SEMINAR DROPDOWN (NO CLOSING DATE ANYMORE!)
+// -------------------------------------------------------------
 function updateSeminarDropdown() {
-  seminarSelect.innerHTML = '<option value="">--Select--</option>';
   const now = new Date();
+  seminarSelect.innerHTML = '<option value="">--Select--</option>';
+
   seminars.forEach(s => {
     const date = new Date(s.date);
     const openDate = new Date(date);
     openDate.setDate(openDate.getDate() - 1);
-    const closeDate = new Date(date);
-    closeDate.setDate(closeDate.getDate() + 7);
 
     let text = `${s.name} on ${date.toLocaleDateString("en-GB")}`;
     let disabled = false;
@@ -147,103 +165,193 @@ function updateSeminarDropdown() {
       text += " (not yet open)";
       tooltip = `Voting opens ${openDate.toLocaleDateString("en-GB")}`;
       disabled = true;
-    } else if (now > closeDate) {
-      text += " (closed)";
-      tooltip = `Voting closed on ${closeDate.toLocaleDateString("en-GB")}`;
-      disabled = true;
-    } else {
-      tooltip = `Voting open until ${closeDate.toLocaleDateString("en-GB")}`;
     }
 
-    const option = document.createElement("option");
-    option.value = s.name;
-    option.textContent = text;
-    option.disabled = disabled;
-    option.title = tooltip;
-    seminarSelect.appendChild(option);
+    const opt = document.createElement("option");
+    opt.value = s.name;
+    opt.textContent = text;
+    opt.disabled = disabled;
+    opt.title = tooltip;
+
+    seminarSelect.appendChild(opt);
   });
 }
 updateSeminarDropdown();
-setInterval(updateSeminarDropdown, 60000);
 
-// --- Render presentation list ---
+// -------------------------------------------------------------
+// RENDER PRESENTATION BLOCKS
+// -------------------------------------------------------------
 function renderPresentations(seminar) {
-  presDiv.innerHTML = '';
+  presDiv.innerHTML = "";
   if (!seminar) return;
-  const presNames = presentationsBySeminar[seminar] || [];
-  presNames.forEach((name, i) => {
+
+  const list = presentationsBySeminar[seminar] || [];
+
+  list.forEach((name, i) => {
     const block = document.createElement("div");
     block.className = "presentation-block";
     block.innerHTML = `
       <h3>${name}</h3>
-      <label for="pres${i+1}">Score (1 = worst, 10 = best)</label>
+
+      <label>Score (1 = worst, 10 = best)</label>
       <select id="pres${i+1}" required>
         <option value="">--Select--</option>
-        ${Array.from({length:10}, (_,j)=>`<option value="${j+1}">${j+1}</option>`).join("")}
+        ${Array.from({length: 10}, (_,x)=>`<option value="${x+1}">${x+1}</option>`).join("")}
       </select>
-      <label for="comment${i+1}">What should be improved?</label>
+
+      <label>What should be improved?</label>
       <textarea id="comment${i+1}" rows="3"></textarea>
+
       <div class="checkbox-row">
         <input type="checkbox" id="nocmt${i+1}">
         <label for="nocmt${i+1}">No comments</label>
       </div>
     `;
+
     presDiv.appendChild(block);
 
     const checkbox = block.querySelector(`#nocmt${i+1}`);
     const textarea = block.querySelector(`#comment${i+1}`);
-    checkbox.addEventListener('change', () => {
+
+    checkbox.addEventListener("change", () => {
       textarea.disabled = checkbox.checked;
       if (checkbox.checked) textarea.value = "";
+      saveDraft();
     });
   });
+
+  loadDraft();
 }
 
-seminarSelect.addEventListener("change", e => renderPresentations(e.target.value));
+seminarSelect.addEventListener("change", () => {
+  renderPresentations(seminarSelect.value);
+  saveDraft();
+});
 
-// --- Submit voting ---
+// -------------------------------------------------------------
+// AUTOSAVE (localStorage)
+// -------------------------------------------------------------
+function saveDraft() {
+  const data = {
+    participantId: document.getElementById("participantId").value,
+    seminar: seminarSelect.value,
+    presentations: []
+  };
+
+  const seminar = seminarSelect.value;
+  if (seminar && presentationsBySeminar[seminar]) {
+    presentationsBySeminar[seminar].forEach((name, i) => {
+      data.presentations.push({
+        score: document.getElementById(`pres${i+1}`)?.value || "",
+        comment: document.getElementById(`comment${i+1}`)?.value || "",
+        noComment: document.getElementById(`nocmt${i+1}`)?.checked || false
+      });
+    });
+  }
+
+  localStorage.setItem("phd_eval_draft", JSON.stringify(data));
+}
+
+function loadDraft() {
+  const data = JSON.parse(localStorage.getItem("phd_eval_draft") || "{}");
+
+  if (data.participantId) document.getElementById("participantId").value = data.participantId;
+  if (data.seminar && seminarSelect.value === "") seminarSelect.value = data.seminar;
+
+  if (data.presentations) {
+    data.presentations.forEach((p, i) => {
+      const scoreEl = document.getElementById(`pres${i+1}`);
+      const cmtEl = document.getElementById(`comment${i+1}`);
+      const chkEl = document.getElementById(`nocmt${i+1}`);
+
+      if (scoreEl) scoreEl.value = p.score || "";
+      if (chkEl) chkEl.checked = p.noComment || false;
+      if (cmtEl) {
+        cmtEl.value = p.comment || "";
+        cmtEl.disabled = p.noComment;
+      }
+    });
+  }
+}
+
+// Save on any input change
+document.addEventListener("input", saveDraft);
+
+// -------------------------------------------------------------
+// WARNING ON LEAVING PAGE
+// -------------------------------------------------------------
+let formSubmitted = false;
+window.addEventListener("beforeunload", e => {
+  if (!formSubmitted) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
+
+// -------------------------------------------------------------
+// SUBMISSION
+// -------------------------------------------------------------
 form.addEventListener("submit", async e => {
   e.preventDefault();
+  message.textContent = "";
+  formSubmitted = true;
+
   const participantId = document.getElementById("participantId").value.trim();
   const seminar = seminarSelect.value;
+
   if (!participantId || !seminar) {
     message.textContent = "Please fill in all required fields.";
     message.className = "error";
     return;
   }
 
-  const presNames = presentationsBySeminar[seminar];
-  let presentations = [];
-  for (let i = 0; i < presNames.length; i++) {
+  // Gather presentation scores
+  const list = presentationsBySeminar[seminar];
+  const evaluations = [];
+
+  for (let i = 0; i < list.length; i++) {
     const score = document.getElementById(`pres${i+1}`).value;
     const comment = document.getElementById(`comment${i+1}`).value.trim();
-    const noCommentChecked = document.getElementById(`nocmt${i+1}`).checked;
+    const noComment = document.getElementById(`nocmt${i+1}`).checked;
+
     if (!score) {
       message.textContent = "Please fill in a score for each presentation.";
       message.className = "error";
       return;
     }
-    presentations.push({ name: presNames[i], score: parseInt(score), comment: noCommentChecked ? "" : comment });
+
+    evaluations.push({
+      name: list[i],
+      score: parseInt(score),
+      comment: noComment ? "" : comment
+    });
   }
 
+  // Check if already voted
+  const docRef = db.collection("votes").doc(`${participantId}_${seminar}`);
+  const existing = await docRef.get();
+  if (existing.exists) {
+    message.textContent = "You have already submitted an evaluation for this seminar.";
+    message.className = "error";
+    return;
+  }
+
+  // Submit
   try {
-    const docRef = db.collection("votes").doc(`${participantId}_${seminar}`);
-    const doc = await docRef.get();
-    if (doc.exists) {
-      message.textContent = "You have already submitted an evaluation for this seminar.";
-      message.className = "error";
-      return;
-    }
     await docRef.set({
       participantId,
       seminar,
-      presentations,
+      presentations: evaluations,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
+
     message.textContent = "Evaluation submitted successfully. Thank you!";
     message.className = "success";
+
+    localStorage.removeItem("phd_eval_draft");
     form.reset();
     presDiv.innerHTML = "";
+
   } catch (err) {
     console.error(err);
     message.textContent = "An error occurred while submitting.";
