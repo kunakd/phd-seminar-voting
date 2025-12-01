@@ -9,41 +9,36 @@
 
 <style>
 html, body {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
+  padding: 0;
+  font-family: Arial;
   display: flex;
   flex-direction: column;
-  font-family: Arial;
-  padding: 20px;
   align-items: center;
 }
-
+body {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  flex: 1;
+}
 header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
-
-header img {
-  height: 120px;
-  margin-bottom: 10px;
-}
-
-header h1 {
-  margin: 0;
-  color: #333;
-  font-size: 28px;
-  text-align: center;
-}
+header img { height: 120px; margin-bottom: 10px; }
+header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 
 /* NAVIGATION BUTTONS */
 .navbar {
   display: flex;
+  justify-content: center;
   gap: 15px;
-  margin-bottom: 30px;
+  margin-top: 20px;
 }
-
 .nav-btn {
   padding: 10px 18px;
   background: #4a4a4a;
@@ -53,13 +48,10 @@ header h1 {
   font-size: 15px;
   transition: background 0.2s;
 }
-
-.nav-btn:hover {
-  background: #000;
-}
+.nav-btn:hover { background: #000; }
 
 #seminarSelectContainer {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
   text-align: center;
 }
 
@@ -68,34 +60,30 @@ header h1 {
   padding: 15px; 
   border: 1px solid #ccc; 
   border-radius: 8px; 
-  display: inline-block;     
   text-align: center;        
   min-width: 300px;          
 }
 
-.winner { 
-  font-weight: bold; 
-  color: green; 
-}
-
-.votes { 
-  font-weight: bold; 
-  color: darkorange; 
-  margin-bottom: 15px; 
-  text-align: center;        
-}
-
-p { 
-  margin: 4px 0; 
-}
+.winner { font-weight: bold; color: green; }
+.votes { font-weight: bold; color: darkorange; margin-bottom: 15px; text-align: center; }
+p { margin: 4px 0; }
 
 footer {
-  margin-top: auto;
-  background: #f8f8f8;
+  background-color: #ffffff;
   text-align: center;
-  padding: 10px 0;
+  padding: 25px 15px;
+  font-size: 14px;
+  color: #000;
   border-top: 1px solid #ccc;
+  margin-top: auto;
   width: 100%;
+}
+
+/* Mobile optimization */
+@media (max-width: 600px) {
+  body { padding: 15px; }
+  header img { height: 90px; }
+  header h1 { font-size: 22px; }
 }
 </style>
 </head>
@@ -137,7 +125,6 @@ const firebaseConfig = {
   appId: "1:1042633812969:web:7fa70745a53338ec5ab978",
   measurementId: "G-2JQDJWPH7L"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -155,8 +142,8 @@ const resultsDiv = document.getElementById("results");
 
 seminarSelect.addEventListener("change", async () => {
   const selected = seminarSelect.value;
-  resultsDiv.innerHTML = ''; 
-  if (!selected) return;     
+  resultsDiv.innerHTML = '';
+  if (!selected) return;
 
   const snapshotVotes = await db.collection('votes').where("seminar", "==", selected).get();
   const numberOfVotes = snapshotVotes.size;
@@ -194,7 +181,7 @@ seminarSelect.addEventListener("change", async () => {
 });
 </script>
 
-<footer style="background-color: #ffffff; text-align: center; padding: 25px 15px; font-size: 14px; color: #000; border-top: 1px solid #ccc; width: 100%;">
+<footer>
   <img src="logo.jpg" alt="Faculty Logo" style="height: 55px; margin-bottom: 10px;">
   <p style="margin: 6px 0;">© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
   <p style="margin: 6px 0;">Hlavova 2030/8, Prague 2, 128 00 | Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
