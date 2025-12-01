@@ -6,6 +6,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
 html, body {
   height: 100%;
@@ -57,14 +58,13 @@ button {
   padding: 8px 14px;
   border: none;
   border-radius: 6px;
-  background: #4CAF50;
   color: white;
   cursor: pointer;
   transition: background 0.2s ease;
 }
 
 button:hover {
-  background: #45a049;
+  opacity: 0.9;
 }
 
 .error {
@@ -103,6 +103,7 @@ footer {
 </style>
 </head>
 <body>
+
 <main>
   <header>
     <img src="logo.jpg" alt="Department Logo">
@@ -112,16 +113,21 @@ footer {
   <div id="loginForm">
     <input type="email" id="email" placeholder="Enter your email"><br>
     <input type="password" id="password" placeholder="Enter your password"><br>
-    <button id="loginBtn">Show Feedback</button>
+    <button id="loginBtn" style="background:#4CAF50;">Show Feedback</button>
     <div id="errorMsg" class="error"></div>
   </div>
 
   <div id="comments" style="display:none;"></div>
 
+  <!-- LOGOUT BUTTON -->
+  <button id="logoutBtn" style="display:none; margin-top:25px; background:#d9534f;">
+    Log Out
+  </button>
+
   <div id="changePasswordForm" style="margin-top:20px; display:none;">
     <h3>Change Password</h3>
     <input type="password" id="newPassword" placeholder="Enter new password"><br>
-    <button id="changePasswordBtn">Update Password</button>
+    <button id="changePasswordBtn" style="background:#4CAF50;">Update Password</button>
     <div id="passwordMsg" class="error"></div>
   </div>
 </main>
@@ -184,12 +190,13 @@ const emailToName = {
   "leonroda@natur.cuni.cz": "Alicia León Rodríguez"
 };
 
-// Přihlášení
+// LOGIN
 document.getElementById("loginBtn").addEventListener("click", async () => {
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
   const errorMsg = document.getElementById("errorMsg");
   const commentsDiv = document.getElementById("comments");
+
   commentsDiv.innerHTML = "";
   errorMsg.textContent = "";
 
@@ -211,6 +218,9 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     document.getElementById("loginForm").style.display = "none";
     commentsDiv.style.display = "block";
 
+    // Show logout button
+    document.getElementById("logoutBtn").style.display = "inline-block";
+
     const userDocRef = db.collection('users').doc(user.email);
     const userDoc = await userDocRef.get();
     let passwordChanged = false;
@@ -223,12 +233,11 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 
     if (!passwordChanged) {
       document.getElementById("changePasswordForm").style.display = "block";
-    } else {
-      document.getElementById("changePasswordForm").style.display = "none";
     }
 
     const snapshot = await db.collection('votes').get();
     let feedbacks = [];
+
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.presentations && Array.isArray(data.presentations)) {
@@ -256,12 +265,13 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   }
 });
 
-// Změna hesla
+// CHANGE PASSWORD
 document.getElementById("changePasswordBtn").addEventListener("click", async () => {
   const newPass = document.getElementById("newPassword").value;
   const passwordMsg = document.getElementById("passwordMsg");
-  passwordMsg.textContent = "";
   const user = firebase.auth().currentUser;
+
+  passwordMsg.textContent = "";
 
   if (!user) {
     passwordMsg.textContent = "You must be logged in to change password.";
@@ -275,12 +285,34 @@ document.getElementById("changePasswordBtn").addEventListener("click", async () 
   try {
     await user.updatePassword(newPass);
     await db.collection('users').doc(user.email).set({ passwordChanged: true }, { merge: true });
+
     passwordMsg.style.color = "green";
     passwordMsg.textContent = "Password updated successfully!";
     document.getElementById("changePasswordForm").style.display = "none";
+
   } catch (error) {
     passwordMsg.style.color = "red";
     passwordMsg.textContent = "Error: " + error.message;
+  }
+});
+
+// LOGOUT
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  try {
+    await firebase.auth().signOut();
+
+    document.getElementById("email").value = "";
+    document.getElementById("password").value = "";
+
+    document.getElementById("comments").style.display = "none";
+    document.getElementById("comments").innerHTML = "";
+    document.getElementById("changePasswordForm").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "none";
+
+    document.getElementById("loginForm").style.display = "block";
+
+  } catch (error) {
+    alert("Logout failed: " + error.message);
   }
 });
 </script>
