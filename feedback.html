@@ -40,7 +40,7 @@ header img {
 }
 
 header h1 {
-  margin: 0 0 15px 0;  /* přidána mezera pod nadpisem */
+  margin: 0 0 15px 0;  /* mezera pod nadpisem */
   color: #333;
   font-size: 28px;     /* sjednoceno s index.html */
   text-align: center;
@@ -68,22 +68,33 @@ header h1 {
   background: #000;
 }
 
-input {
-  padding: 8px;
-  margin: 5px;
+#loginForm, #changePasswordForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 350px;
+}
+
+#loginForm input, #changePasswordForm input {
+  padding: 10px;
+  margin: 8px 0;
   border-radius: 5px;
   border: 1px solid #ccc;
-  width: 90%;
-  max-width: 300px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 button {
-  padding: 8px 14px;
+  padding: 10px 16px;
   border: none;
   border-radius: 6px;
   color: white;
   cursor: pointer;
   transition: background 0.2s ease;
+  margin-top: 10px;
+  width: 100%;
 }
 
 button:hover {
@@ -94,13 +105,14 @@ button:hover {
   color: red;
   font-weight: bold;
   margin-top: 10px;
+  text-align: center;
 }
 
 .comment-box {
   width: 100%;
   max-width: 600px;
   padding: 12px;
-  margin: 8px 0;
+  margin: 10px 0;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 1px 5px rgba(0,0,0,0.08);
@@ -115,14 +127,20 @@ button:hover {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* FOOTER - sjednoceno s index.html */
+/* FOOTER */
 footer {
   background-color: #ffffff;
   text-align: center;
-  padding: 25px 15px;
   font-size: 14px;
   color: #000;
+  margin-top: auto;
+}
+
+footer .footer-content {
+  max-width: 1000px;
+  margin: 0 auto;
   border-top: 1px solid #ccc;
+  padding: 20px 0 0 0;
 }
 </style>
 </head>
@@ -141,8 +159,8 @@ footer {
   </header>
 
   <div id="loginForm">
-    <input type="email" id="email" placeholder="Enter your email"><br>
-    <input type="password" id="password" placeholder="Enter your password"><br>
+    <input type="email" id="email" placeholder="Enter your email">
+    <input type="password" id="password" placeholder="Enter your password">
     <button id="loginBtn" style="background:#4CAF50;">Show Feedback</button>
     <div id="errorMsg" class="error"></div>
   </div>
@@ -150,25 +168,27 @@ footer {
   <div id="comments" style="display:none;"></div>
 
   <!-- LOGOUT BUTTON -->
-  <button id="logoutBtn" style="display:none; margin-top:25px; background:#d9534f;">
+  <button id="logoutBtn" style="display:none; background:#d9534f;">
     Log Out
   </button>
 
-  <div id="changePasswordForm" style="margin-top:20px; display:none;">
+  <div id="changePasswordForm" style="display:none;">
     <h3>Change Password</h3>
-    <input type="password" id="newPassword" placeholder="Enter new password"><br>
+    <input type="password" id="newPassword" placeholder="Enter new password">
     <button id="changePasswordBtn" style="background:#4CAF50;">Update Password</button>
     <div id="passwordMsg" class="error"></div>
   </div>
 </main>
 
 <footer>
-  <img src="logo.jpg" alt="Faculty Logo" style="height: 55px; margin-bottom: 10px;">
-  <p style="margin: 6px 0;">© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
-  <p style="margin: 6px 0;">Hlavova 2030/8, Prague 2, 128 00 | Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz</p>
-  <p style="margin: 6px 0;">
-    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">https://orgchem.natur.cuni.cz</a>
-  </p>
+  <div class="footer-content">
+    <img src="logo.jpg" alt="Faculty Logo" style="height: 55px; margin-bottom: 10px;">
+    <p style="margin: 6px 0;">© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
+    <p style="margin: 6px 0;">Hlavova 2030/8, Prague 2, 128 00 | Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz</p>
+    <p style="margin: 6px 0;">
+      <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">https://orgchem.natur.cuni.cz</a>
+    </p>
+  </div>
 </footer>
 
 <script>
@@ -237,8 +257,7 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
 
     document.getElementById("loginForm").style.display = "none";
     commentsDiv.style.display = "block";
-
-    document.getElementById("logoutBtn").style.display = "inline-block";
+    document.getElementById("logoutBtn").style.display = "block";
 
     const userDocRef = db.collection('users').doc(user.email);
     const userDoc = await userDocRef.get();
@@ -328,7 +347,7 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
     document.getElementById("changePasswordForm").style.display = "none";
     document.getElementById("logoutBtn").style.display = "none";
 
-    document.getElementById("loginForm").style.display = "block";
+    document.getElementById("loginForm").style.display = "flex";
 
   } catch (error) {
     alert("Logout failed: " + error.message);
