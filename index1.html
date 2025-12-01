@@ -84,10 +84,42 @@ footer {
   <img src="logo.jpg" alt="Department Logo">
   <h1>PhD Seminar Evaluation</h1>
 </header>
+  
+<div style="
+  border: 2px solid #444;
+  padding: 12px 15px;
+  border-radius: 6px;
+  background: #fff;
+  margin-bottom: 25px;
+">
+
+  <h3 style="
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    color: #000;
+    text-align: center;
+    font-weight: bold;
+  ">
+    Instructions for Email/Name
+  </h3>
+
+  <p style="
+    margin: 0;
+    font-size: 14px;
+    color: #000;
+    line-height: 1.45;
+    text-align: left;
+  ">
+    <strong>Students:</strong> Please enter your faculty email (...@natur.cuni.cz) or IOCB email (...@uochb.cas.cz).<br>
+    <strong>Academic staff:</strong> Please enter your full name (name and surname).
+  </p>
+
+</div>
+
 
 <form id="voteForm">
-  <label for="participantId">Email (Participant ID)</label>
-  <input type="email" id="participantId" required>
+  <label for="participantId">Email/Name</label>
+  <input type="text" id="participantId" required>
 
   <label for="seminar">Select seminar</label>
   <select id="seminar" required>
@@ -130,11 +162,11 @@ const seminars = [
 
 const presentationsBySeminar = {
   "Seminar 1": ["Marko Boskovic", "Büşra Buse Tütüncü", "Samanta Rožánková", "Yu-Wei Tu"],
-  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Pratibha Choudhari", "Botond Bolgár"],
+  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Pratibha Choudhari"],
   "Seminar 3": ["Anna-Marie Dušková", "Pallavi Halkarni", "Pipatpon Raksapon", "Ondřej Daněk"],
   "Seminar 4": ["Filip Trajhan", "Alicia León Rodríguez", "Jakub Krištof", "Andrea Vopálenská"],
   "Seminar 5": ["Ondřej Hladík", "Lucie Černá", "Shubham Bhatt", "Nidhi Sinha"],
-  "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
+  "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"] 
 };
 
 // -------------------------------------------------------------
