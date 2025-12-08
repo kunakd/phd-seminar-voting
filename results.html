@@ -32,7 +32,6 @@ header {
 header img { height: 120px; margin-bottom: 10px; }
 header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 
-/* NAVIGATION BUTTONS */
 .navbar {
   display: flex;
   justify-content: center;
@@ -79,11 +78,53 @@ footer {
   width: 100%;
 }
 
-/* Mobile optimization */
-@media (max-width: 600px) {
-  body { padding: 15px; }
-  header img { height: 90px; }
-  header h1 { font-size: 22px; }
+/* ----- PODIUM STYLE ----- */
+.podium-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.podium-title {
+  font-size: 28px;
+  margin-top: 10px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 30px;
+  margin-top: 25px;
+}
+
+.block {
+  width: 140px;
+  padding: 10px;
+  font-weight: bold;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.first {
+  background: gold;
+  height: 160px;
+  font-size: 18px;
+}
+
+.second {
+  background: silver;
+  height: 120px;
+  font-size: 18px;
+}
+
+.third {
+  background: #cd7f32;
+  height: 100px;
+  font-size: 18px;
 }
 </style>
 </head>
@@ -93,7 +134,6 @@ footer {
   <img src="logo.jpg" alt="Department Logo">
   <h1>PhD Seminar Evaluation Results</h1>
 
-  <!-- NAVIGATION -->
   <div class="navbar">
     <a href="index.html" class="nav-btn">Evaluation</a>
     <a href="feedback.html" class="nav-btn">Feedback</a>
@@ -110,6 +150,7 @@ footer {
     <option value="Seminar 4">Seminar 4 on 13th February 2026</option>
     <option value="Seminar 5">Seminar 5 on 10th April 2026</option>
     <option value="Seminar 6">Seminar 6 on 15th May 2026</option>
+    <option value="Grand">Overall winners (Top 3)</option>
   </select>
 </div>
 
@@ -137,6 +178,18 @@ const presentationsBySeminar = {
   "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
+function requireLoginBeforeDate() {
+  const today = new Date();
+  const unlockDate = new Date("2026-06-04T00:00:00");
+
+  if (today >= unlockDate) return true;
+
+  const user = prompt("Enter admin email:");
+  const pass = prompt("Enter password:");
+
+  return (user === "dominik.kunak@natur.cuni.cz" && pass === "Zm6kdfCVsX");
+}
+
 const seminarSelect = document.getElementById("seminarSelect");
 const resultsDiv = document.getElementById("results");
 
@@ -144,6 +197,15 @@ seminarSelect.addEventListener("change", async () => {
   const selected = seminarSelect.value;
   resultsDiv.innerHTML = '';
   if (!selected) return;
+
+  if (selected === "Grand") {
+    if (!requireLoginBeforeDate()) {
+      alert("Access denied.");
+      return;
+    }
+    showGrandWinners();
+    return;
+  }
 
   const snapshotVotes = await db.collection('votes').where("seminar", "==", selected).get();
   const numberOfVotes = snapshotVotes.size;
@@ -160,9 +222,9 @@ seminarSelect.addEventListener("change", async () => {
     doc.data().presentations.forEach((p,i)=>{ totals[i] += p.score; });
   });
 
-  const avgTotals = totals.map(t => (snapshotVotes.size>0 ? (t/snapshotVotes.size).toFixed(2) : 0));
+  const avgTotals = totals.map(t => (snapshotVotes.size > 0 ? (t/snapshotVotes.size).toFixed(2) : 0));
   const ranked = avgTotals.map((score,index)=>({score: parseFloat(score), index}))
-                         .sort((a,b)=>b.score-a.score);
+                         .sort((a,b)=>b.score - a.score);
 
   let seminarDiv = document.createElement("div");
   seminarDiv.className = "seminar";
@@ -179,6 +241,66 @@ seminarSelect.addEventListener("change", async () => {
 
   confetti({ particleCount: 100, spread: 120, origin: { y: 0.6 } });
 });
+
+async function showGrandWinners() {
+  resultsDiv.innerHTML = `
+    <div class="podium-wrapper">
+      <div class="podium-title">Overall Winners – Top 3</div>
+    </div>
+  `;
+
+  let allResults = [];
+
+  for (const seminarName in presentationsBySeminar) {
+    const names = presentationsBySeminar[seminarName];
+    const snapshot = await db.collection("votes").where("seminar", "==", seminarName).get();
+    if (snapshot.empty) continue;
+
+    let totals = Array(names.length).fill(0);
+
+    snapshot.forEach(doc => {
+      doc.data().presentations.forEach((p,i)=>{ totals[i] += p.score; });
+    });
+
+    const avg = totals.map(t => t / snapshot.size);
+
+    avg.forEach((score, index) => {
+      allResults.push({
+        name: names[index],
+        seminar: seminarName,
+        score
+      });
+    });
+  }
+
+  const top3 = allResults.sort((a,b)=>b.score - a.score).slice(0,3);
+
+  const podium = `
+    <div class="podium">
+      <div class="block second">
+        <div>2nd</div>
+        <div>${top3[1].name}</div>
+        <div>${top3[1].score.toFixed(2)}</div>
+      </div>
+
+      <div class="block first">
+        <div>1st</div>
+        <div>${top3[0].name}</div>
+        <div>${top3[0].score.toFixed(2)}</div>
+      </div>
+
+      <div class="block third">
+        <div>3rd</div>
+        <div>${top3[2].name}</div>
+        <div>${top3[2].score.toFixed(2)}</div>
+      </div>
+    </div>
+  `;
+
+  resultsDiv.innerHTML += podium;
+
+  confetti({ particleCount: 200, spread: 150, origin: { y: 0.6 } });
+}
 </script>
 
 <footer>
