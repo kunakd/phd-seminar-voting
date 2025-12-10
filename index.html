@@ -31,7 +31,6 @@ header {
 header img { height: 120px; margin-bottom: 10px; }
 header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 
-/* --- NAVIGATION BUTTONS --- */
 .navbar {
   display: flex;
   justify-content: center;
@@ -156,15 +155,30 @@ footer {
 
   <div id="presentations"></div>
 
-  <button type="submit">Submit evaluation</button>
+  <button type="submit" id="submitBtn">Submit evaluation</button>
 </form>
 
-<div id="message"></div>
+<div id="message" aria-live="polite"></div>
 
 <script>
-// -------------------------------------------------------------
-// FIREBASE INIT
-// -------------------------------------------------------------
+// ------------------- Utility & Config -------------------
+const DRAFT_KEY = 'phd_eval_draft';
+function debounce(fn, wait=300){ let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), wait); }; }
+
+// sanitize an id for Firestore doc ID (remove chars not allowed by Firestore)
+function safeIdForDoc(str){
+  if(!str) return '';
+  // trim, lowercase optional, replace forbidden chars with underscore
+  return String(str).trim().replace(/[.#$/\\[\\]]/g, '_');
+}
+
+function showMessage(text, type){
+  const el = document.getElementById('message');
+  el.textContent = text || '';
+  el.className = type === 'error' ? 'error' : (type === 'success' ? 'success' : '');
+}
+
+// ------------------- Firebase init -------------------
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -173,12 +187,18 @@ const firebaseConfig = {
   messagingSenderId: "1042633812969",
   appId: "1:1042633812969:web:7fa70745a53338ec5ab978"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-// -------------------------------------------------------------
-// SEMINARS & PRESENTATIONS
-// -------------------------------------------------------------
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+} catch (e) {
+  console.error('Firebase init error', e);
+  // allow local usage (draft) but warn user
+  showMessage('Warning: backend failed to initialize. Drafts will still be saved locally.', 'error');
+}
+
+// ------------------- Data -------------------
 const seminars = [
   { name: "Seminar 1", date: "2025-11-14" },
   { name: "Seminar 2", date: "2025-12-12" },
@@ -194,226 +214,264 @@ const presentationsBySeminar = {
   "Seminar 3": ["Anna-Marie Dušková", "Pallavi Halkarni", "Pipatpon Raksapon", "Ondřej Daněk"],
   "Seminar 4": ["Filip Trajhan", "Alicia León Rodríguez", "Jakub Krištof", "Andrea Vopálenská"],
   "Seminar 5": ["Ondřej Hladík", "Lucie Černá", "Shubham Bhatt", "Nidhi Sinha"],
-  "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"] 
+  "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
-// -------------------------------------------------------------
-// DOM ELEMENTS
-// -------------------------------------------------------------
+// ------------------- DOM refs -------------------
 const seminarSelect = document.getElementById("seminar");
 const presDiv = document.getElementById("presentations");
 const form = document.getElementById("voteForm");
 const message = document.getElementById("message");
+const submitBtn = document.getElementById("submitBtn");
+const participantInput = document.getElementById("participantId");
 
-// -------------------------------------------------------------
-// SEMINAR DROPDOWN
-// -------------------------------------------------------------
-function updateSeminarDropdown() {
-  const now = new Date();
+// ------------------- beforeunload handler (named so we can remove it) -------------------
+function beforeUnloadListener(e){
+  // standard prompt
+  e.preventDefault();
+  e.returnValue = '';
+}
+window.addEventListener('beforeunload', beforeUnloadListener);
+
+// ------------------- Populate seminars -------------------
+function updateSeminarDropdown(){
   seminarSelect.innerHTML = '<option value="">--Select--</option>';
-
-  seminars.forEach(s => {
+  const now = new Date();
+  seminars.forEach(s=>{
     const date = new Date(s.date);
-    const openDate = new Date(date);
-    openDate.setDate(openDate.getDate() - 1);
-
-    let text = `${s.name} on ${date.toLocaleDateString("en-GB")}`;
-    let disabled = false;
-    let tooltip = "";
-
-    if (now < openDate) {
-      text += " (not yet open)";
-      tooltip = `Voting opens ${openDate.toLocaleDateString("en-GB")}`;
-      disabled = true;
-    }
-
-    const opt = document.createElement("option");
+    const openDate = new Date(date); openDate.setDate(openDate.getDate()-1);
+    const opt = document.createElement('option');
     opt.value = s.name;
-    opt.textContent = text;
-    opt.disabled = disabled;
-    opt.title = tooltip;
-
+    opt.textContent = `${s.name} on ${date.toLocaleDateString('en-GB')}`;
+    if(now < openDate){
+      opt.disabled = true;
+      opt.textContent += ' (not yet open)';
+      opt.title = `Voting opens ${openDate.toLocaleDateString('en-GB')}`;
+    }
     seminarSelect.appendChild(opt);
   });
 }
 updateSeminarDropdown();
 
-// -------------------------------------------------------------
-// RENDER PRESENTATION BLOCKS
-// -------------------------------------------------------------
-function renderPresentations(seminar) {
-  presDiv.innerHTML = "";
-  if (!seminar) return;
-
+// ------------------- Render presentations -------------------
+function renderPresentations(seminar){
+  presDiv.innerHTML = '';
+  if(!seminar) return;
   const list = presentationsBySeminar[seminar] || [];
-
-  list.forEach((name, i) => {
-    const block = document.createElement("div");
-    block.className = "presentation-block";
+  list.forEach((name, i)=>{
+    const block = document.createElement('div');
+    block.className = 'presentation-block';
+    // use data-idx for stable references
     block.innerHTML = `
       <h3>${name}</h3>
-
       <label>Score (1 = worst, 10 = best)</label>
-      <select id="pres${i+1}" required>
+      <select id="pres${i+1}" data-idx="${i}" required>
         <option value="">--Select--</option>
-        ${Array.from({length: 10}, (_,x)=>`<option value="${x+1}">${x+1}</option>`).join("")}
+        ${Array.from({length:10},(_,x)=>`<option value="${x+1}">${x+1}</option>`).join('')}
       </select>
-
       <label>What should be improved?</label>
-      <textarea id="comment${i+1}" rows="3"></textarea>
-
+      <textarea id="comment${i+1}" data-idx="${i}" rows="3"></textarea>
       <div class="checkbox-row">
-        <input type="checkbox" id="nocmt${i+1}">
+        <input type="checkbox" id="nocmt${i+1}" data-idx="${i}">
         <label for="nocmt${i+1}">No comments</label>
       </div>
     `;
-
     presDiv.appendChild(block);
 
     const checkbox = block.querySelector(`#nocmt${i+1}`);
     const textarea = block.querySelector(`#comment${i+1}`);
-
-    checkbox.addEventListener("change", () => {
+    checkbox.addEventListener('change', ()=>{
       textarea.disabled = checkbox.checked;
-      if (checkbox.checked) textarea.value = "";
-      saveDraft();
+      if(checkbox.checked) textarea.value = '';
+      saveDraftDebounced();
     });
   });
 
-  loadDraft();
+  // after creating controls, load draft values (if any)
+  loadDraftIntoDOM();
 }
 
-seminarSelect.addEventListener("change", () => {
-  renderPresentations(seminarSelect.value);
-  saveDraft();
-});
-
-// -------------------------------------------------------------
-// AUTOSAVE
-// -------------------------------------------------------------
-function saveDraft() {
-  const data = {
-    participantId: document.getElementById("participantId").value,
-    seminar: seminarSelect.value,
-    presentations: []
-  };
-
+// ------------------- Draft save/load (debounced) -------------------
+function gatherDraft(){
+  const draft = { participantId: participantInput.value || '', seminar: seminarSelect.value || '', presentations: [] };
   const seminar = seminarSelect.value;
-  if (seminar && presentationsBySeminar[seminar]) {
-    presentationsBySeminar[seminar].forEach((name, i) => {
-      data.presentations.push({
-        score: document.getElementById(`pres${i+1}`)?.value || "",
-        comment: document.getElementById(`comment${i+1}`)?.value || "",
-        noComment: document.getElementById(`nocmt${i+1}`)?.checked || false
+  if(seminar && presentationsBySeminar[seminar]){
+    presentationsBySeminar[seminar].forEach((_, i)=>{
+      const score = document.getElementById(`pres${i+1}`)?.value || '';
+      const comment = document.getElementById(`comment${i+1}`)?.value || '';
+      const noComment = document.getElementById(`nocmt${i+1}`)?.checked || false;
+      draft.presentations.push({ score, comment, noComment });
+    });
+  }
+  draft.savedAt = new Date().toISOString();
+  return draft;
+}
+
+function saveDraft(){
+  try{
+    const data = gatherDraft();
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+  }catch(e){
+    console.error('saveDraft error', e);
+  }
+}
+const saveDraftDebounced = debounce(saveDraft, 300);
+
+function loadDraftIntoDOM(){
+  try{
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(data.participantId) participantInput.value = data.participantId;
+    if(data.seminar){
+      // only set seminar if none selected to avoid overwriting user's manual change
+      if(!seminarSelect.value) seminarSelect.value = data.seminar;
+    }
+    if(data.presentations && data.presentations.length){
+      data.presentations.forEach((p, i)=>{
+        const scoreEl = document.getElementById(`pres${i+1}`);
+        const cmtEl = document.getElementById(`comment${i+1}`);
+        const chkEl = document.getElementById(`nocmt${i+1}`);
+        if(scoreEl) scoreEl.value = p.score || '';
+        if(chkEl) chkEl.checked = p.noComment || false;
+        if(cmtEl){ cmtEl.value = p.comment || ''; cmtEl.disabled = chkEl?.checked || false; }
       });
-    });
-  }
-
-  localStorage.setItem("phd_eval_draft", JSON.stringify(data));
-}
-
-function loadDraft() {
-  const data = JSON.parse(localStorage.getItem("phd_eval_draft") || "{}");
-
-  if (data.participantId) document.getElementById("participantId").value = data.participantId;
-  if (data.seminar && seminarSelect.value === "") seminarSelect.value = data.seminar;
-
-  if (data.presentations) {
-    data.presentations.forEach((p, i) => {
-      const scoreEl = document.getElementById(`pres${i+1}`);
-      const cmtEl = document.getElementById(`comment${i+1}`);
-      const chkEl = document.getElementById(`nocmt${i+1}`);
-
-      if (scoreEl) scoreEl.value = p.score || "";
-      if (chkEl) chkEl.checked = p.noComment || false;
-      if (cmtEl) {
-        cmtEl.value = p.comment || "";
-        cmtEl.disabled = p.noComment;
-      }
-    });
+    }
+  }catch(e){
+    console.error('loadDraftIntoDOM error', e);
   }
 }
 
-document.addEventListener("input", saveDraft);
-
-// -------------------------------------------------------------
-// WARNING ON LEAVING PAGE
-// -------------------------------------------------------------
-let formSubmitted = false;
-window.addEventListener("beforeunload", e => {
-  if (!formSubmitted) {
-    e.preventDefault();
-    e.returnValue = "";
-  }
+// ------------------- Hook up events -------------------
+seminarSelect.addEventListener('change', ()=>{
+  renderPresentations(seminarSelect.value);
+  saveDraftDebounced();
 });
 
-// -------------------------------------------------------------
-// SUBMISSION
-// -------------------------------------------------------------
-form.addEventListener("submit", async e => {
+document.addEventListener('input', saveDraftDebounced);
+participantInput.addEventListener('input', saveDraftDebounced);
+
+// If there is a saved seminar value on load, render its presentations
+(function restoreOnLoad(){
+  // first, if draft contains a seminar, set selection then render
+  try{
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(data.seminar){
+        // ensure option exists (disabled options may exist too)
+        const opt = Array.from(seminarSelect.options).find(o=>o.value === data.seminar);
+        if(opt) seminarSelect.value = data.seminar;
+      }
+    }
+  }catch(e){/*ignore*/}
+  // render presentations for current selected seminar (if any)
+  if(seminarSelect.value) renderPresentations(seminarSelect.value);
+  // finally, populate fields from draft into DOM
+  loadDraftIntoDOM();
+})();
+
+// ------------------- Submit handling -------------------
+let isSubmitting = false;
+form.addEventListener('submit', async (e)=>{
   e.preventDefault();
-  message.textContent = "";
-  formSubmitted = true;
+  showMessage('', ''); // clear
+  if(isSubmitting) return;
+  isSubmitting = true;
+  submitBtn.disabled = true;
 
-  const participantId = document.getElementById("participantId").value.trim();
-  const seminar = seminarSelect.value;
+  // temporarily remove beforeunload so browser doesn't interrupt async submit
+  window.removeEventListener('beforeunload', beforeUnloadListener);
 
-  if (!participantId || !seminar) {
-    message.textContent = "Please fill in all required fields.";
-    message.className = "error";
-    return;
-  }
-
-  const list = presentationsBySeminar[seminar];
-  const evaluations = [];
-
-  for (let i = 0; i < list.length; i++) {
-    const score = document.getElementById(`pres${i+1}`).value;
-    const comment = document.getElementById(`comment${i+1}`).value.trim();
-    const noComment = document.getElementById(`nocmt${i+1}`).checked;
-
-    if (!score) {
-      message.textContent = "Please fill in a score for each presentation.";
-      message.className = "error";
+  try{
+    const participantIdRaw = participantInput.value.trim();
+    const seminar = seminarSelect.value;
+    if(!participantIdRaw || !seminar){
+      showMessage('Please fill in all required fields.', 'error');
       return;
     }
 
-    evaluations.push({
-      name: list[i],
-      score: parseInt(score),
-      comment: noComment ? "" : comment
-    });
-  }
+    const list = presentationsBySeminar[seminar];
+    if(!list || !list.length){
+      showMessage('No presentations found for selected seminar.', 'error');
+      return;
+    }
 
-  const docRef = db.collection("votes").doc(`${participantId}_${seminar}`);
-  const existing = await docRef.get();
-  if (existing.exists) {
-    message.textContent = "You have already submitted an evaluation for this seminar.";
-    message.className = "error";
-    return;
-  }
+    const evaluations = [];
+    for(let i=0;i<list.length;i++){
+      const scoreEl = document.getElementById(`pres${i+1}`);
+      const chkEl = document.getElementById(`nocmt${i+1}`);
+      const cmtEl = document.getElementById(`comment${i+1}`);
+      const score = scoreEl?.value;
+      const noComment = chkEl?.checked || false;
+      const comment = noComment ? '' : (cmtEl?.value.trim() || '');
+      if(!score){
+        showMessage('Please fill in a score for each presentation.', 'error');
+        return;
+      }
+      evaluations.push({ name: list[i], score: parseInt(score,10), comment });
+    }
 
-  try {
-    await docRef.set({
-      participantId,
-      seminar,
-      presentations: evaluations,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    // sanitize doc id
+    const safeId = safeIdForDoc(`${participantIdRaw}_${seminar}`);
+    const docRef = db ? db.collection('votes').doc(safeId) : null;
 
-    message.textContent = "Evaluation submitted successfully. Thank you!";
-    message.className = "success";
+    // if firestore unavailable, save draft and notify
+    if(!docRef){
+      // restore beforeunload
+      window.addEventListener('beforeunload', beforeUnloadListener);
+      showMessage('Backend not available. Your evaluation is saved locally as a draft.', 'error');
+      saveDraft();
+      return;
+    }
 
-    localStorage.removeItem("phd_eval_draft");
-    form.reset();
-    presDiv.innerHTML = "";
+    // check for existing submission safely
+    let existing = null;
+    try{
+      existing = await docRef.get();
+    }catch(err){
+      console.warn('Error checking existing doc', err);
+      // continue and attempt to write (we'll handle write errors)
+    }
+    if(existing && existing.exists){
+      showMessage('You have already submitted an evaluation for this seminar.', 'error');
+      return;
+    }
 
-  } catch (err) {
-    console.error(err);
-    message.textContent = "An error occurred while submitting.";
-    message.className = "error";
+    // attempt to set document
+    try{
+      await docRef.set({
+        participantId: participantIdRaw,
+        seminar,
+        presentations: evaluations,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // success
+      showMessage('Evaluation submitted successfully. Thank you!', 'success');
+      // clear draft and form
+      localStorage.removeItem(DRAFT_KEY);
+      form.reset();
+      presDiv.innerHTML = '';
+    }catch(err){
+      console.error('Error writing to Firestore', err);
+      // if write fails, save draft locally and inform user
+      saveDraft();
+      showMessage('An error occurred while submitting. Your evaluation was saved locally as a draft.', 'error');
+    }
+
+  }catch(ex){
+    console.error('Unexpected submit error', ex);
+    showMessage('An unexpected error occurred. Please try again.', 'error');
+  }finally{
+    // re-enable submit and re-attach beforeunload handler
+    isSubmitting = false;
+    submitBtn.disabled = false;
+    // reattach only if form has unsaved data
+    window.addEventListener('beforeunload', beforeUnloadListener);
   }
 });
+
 </script>
 
 <footer>
