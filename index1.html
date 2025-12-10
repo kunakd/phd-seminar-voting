@@ -10,9 +10,7 @@
 
 <style>
 /* Globální reset + box-sizing */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   min-height: 100%;
@@ -20,112 +18,94 @@ html, body {
   padding: 0;
   font-family: Arial, sans-serif;
   font-size: 16px;
-  background-color: #fff; /* bílé pozadí */
+  background-color: #fff;
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
-body {
-  flex: 1;
-  padding: 25px;
-}
+body { flex: 1; padding: 20px; }
 
 /* Header */
 header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
-header img { 
-  height: 140px; 
-  margin-bottom: 15px; 
-  max-width: 100%; 
-  object-fit: contain; 
-}
-header h1 { 
-  margin: 0; 
-  color: #333; 
-  font-size: 32px; 
-  text-align: center; 
-  margin-bottom: 20px;
-}
+header img { height: 120px; margin-bottom: 10px; max-width: 100%; object-fit: contain; }
+header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 
 /* Navbar */
 .navbar {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 15px;
   flex-wrap: wrap;
+  margin-top: 15px;
 }
 .nav-btn {
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: #4a4a4a;
   color: white;
-  border-radius: 10px;
+  border-radius: 8px;
   text-decoration: none;
-  font-size: 18px;
+  font-size: 16px;
   transition: background 0.2s;
 }
 .nav-btn:hover { background: #000; }
 
 /* Form Elements */
-label { display:block; margin-top:15px; font-weight:bold; font-size: 18px; }
-input, select, textarea {
+label { display:block; margin-top:15px; font-weight:bold; }
+input, select, textarea, button {
   width: 100%;
-  padding: 16px;
+  padding: 14px;
   margin-top:8px;
-  border-radius:10px;
+  border-radius:8px;
   border:1px solid #ccc;
   font-size: 18px;
 }
+select, input, textarea { margin-bottom: 12px; }
 textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
 textarea:disabled { background-color: #eee; color: #666; }
 
-/* Submit button */
-button#submitBtn {
+button {
   cursor: pointer;
-  background-color: #39FF14; /* neonově zelená */
-  color: #000; /* černé písmo */
+  background-color: #4a90e2;
+  color: white;
   border: none;
   transition: background-color 0.2s;
-  font-size: 18px;
-  padding: 16px;
-  border-radius: 10px;
 }
-button#submitBtn:hover {
-  background-color: #2ECC12; /* tmavší zelená při hoveru */
-}
+button:hover { background-color: #357ABD; }
 
 /* Presentation blocks */
 .presentation-block { 
   border: 1px solid #ccc; 
-  border-radius: 14px; 
-  padding: 22px; 
+  border-radius: 12px; 
+  padding: 20px; 
   margin-top: 20px; 
   background: #fff; 
-  box-shadow: 2px 2px 12px rgba(0,0,0,0.08); 
-  font-size:20px; 
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.08); 
+  font-size:18px; 
   transition: transform 0.1s;
   width: 100%;
 }
 .presentation-block:hover { transform: scale(1.02); }
-.presentation-block h3 { margin-top: 0; color: #444; font-size: 20px; }
+.presentation-block h3 { margin-top: 0; color: #444; }
 
 /* Checkbox styling */
 .checkbox-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 8px;
 }
 .checkbox-row input[type="checkbox"] {
   width: auto;
   cursor:pointer;
-  transform: scale(1.5);
+  transform: scale(1.3);
 }
-.checkbox-row label { margin: 0; cursor: pointer; font-size: 18px; }
+.checkbox-row label { margin: 0; cursor: pointer; }
 
 /* Messages */
 .success { color: green; margin-top:20px; font-size:18px; }
@@ -135,25 +115,33 @@ button#submitBtn:hover {
 footer {
   background-color: #ffffff;
   text-align: center;
-  padding: 25px 10px;
+  padding: 20px 10px;
   font-size: 14px;
   color: #000;
   border-top: 1px solid #ccc;
   margin-top: auto;
 }
-footer img { height: 60px; margin-bottom: 10px; max-width: 100%; }
+footer img { height: 55px; margin-bottom: 10px; max-width: 100%; }
 
 /* Mobile-specific adjustments */
 @media (max-width: 600px) {
-  body { padding: 15px; font-size: 18px; }
-  header img { height: 120px; }
-  header h1 { font-size: 26px; }
+  body {
+    padding: 15px;
+    font-size: 18px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+  header img { height: 140px; }
+  header h1 { font-size: 28px; }
   .nav-btn { font-size: 18px; padding: 16px 18px; }
-  input, select, textarea, button { font-size: 18px; padding: 16px; }
-  .presentation-block { padding: 20px; font-size: 18px; border-radius: 14px; }
-  #message { font-size: 18px; }
+  input, select, textarea, button { font-size: 20px; padding: 18px; }
+  select, input, textarea { margin-bottom: 16px; }
+  .presentation-block { padding: 22px; font-size: 20px; border-radius: 14px; }
+  #message { font-size: 20px; }
 
-  /* Fixed submit button at bottom */
+  /* Submit button neon green, black text, fixed bottom with margin */
   #submitBtn {
     position: fixed;
     bottom: 15px;
@@ -163,8 +151,10 @@ footer img { height: 60px; margin-bottom: 10px; max-width: 100%; }
     font-size: 20px;
     border-radius: 12px;
     padding: 18px;
-    background-color: #39FF14;
+    background-color: #39FF14; /* neonově zelené */
     color: #000;
+    text-align: center;
+    margin-top: 15px;
   }
 }
 </style>
@@ -380,8 +370,4 @@ form.addEventListener('submit', async (e)=>{
   <img src="logo.jpg" alt="Faculty Logo">
   <p style="margin: 6px 0;">© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
   <p style="margin: 6px 0;">Hlavova 2030/8, Prague 2, 128 00 | Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
-  <p style="margin: 6px 0;"><a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">https://orgchem.natur.cuni.cz</a></p>
-</footer>
-
-</body>
-</html>
+  <p style="margin: 6px 0;"><a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000
