@@ -17,6 +17,7 @@ html, body {
   display: flex;
   flex-direction: column;
   font-size: 16px;
+  background-color: #f5f5f5;
 }
 body {
   max-width: 800px;
@@ -42,12 +43,12 @@ header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 }
 
 .nav-btn {
-  padding: 12px 20px;
+  padding: 14px 20px;
   background: #4a4a4a;
   color: white;
-  border-radius: 6px;
+  border-radius: 8px;
   text-decoration: none;
-  font-size: 16px;
+  font-size: 18px;
   transition: background 0.2s;
 }
 
@@ -56,26 +57,38 @@ header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 }
 
 label { display:block; margin-top:15px; font-weight:bold; }
-input, select, textarea, button { width:100%; padding:10px; margin-top:5px; border-radius:4px; border:1px solid #ccc; box-sizing:border-box; font-size:16px; }
+input, select, textarea, button { width:100%; padding:14px; margin-top:8px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; font-size:18px; }
 textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
-button { cursor: pointer; }
+button { cursor: pointer; background-color: #4a90e2; color: white; border: none; transition: background-color 0.2s; }
+button:hover { background-color: #357ABD; }
 
-.success { color: green; margin-top:20px; font-size:16px; }
-.error { color: red; margin-top:20px; font-size:16px; }
+.success { color: green; margin-top:20px; font-size:18px; }
+.error { color: red; margin-top:20px; font-size:18px; }
 
-.presentation-block { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-top: 20px; background: #fafafa; box-shadow: 1px 1px 5px rgba(0,0,0,0.05); font-size:16px; }
+.presentation-block { 
+  border: 1px solid #ccc; 
+  border-radius: 12px; 
+  padding: 20px; 
+  margin-top: 20px; 
+  background: #fff; 
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.08); 
+  font-size:18px; 
+  transition: transform 0.1s;
+}
+.presentation-block:hover { transform: scale(1.02); }
 .presentation-block h3 { margin-top: 0; color: #444; }
 
 .checkbox-row {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
-  margin-top: 5px;
+  gap: 10px;
+  margin-top: 8px;
 }
 .checkbox-row input[type="checkbox"] {
   width: auto;
   cursor:pointer;
+  transform: scale(1.3);
 }
 .checkbox-row label {
   margin: 0;
@@ -99,13 +112,12 @@ footer {
   body { padding: 15px; font-size: 18px; }
   header img { height: 100px; }
   header h1 { font-size: 24px; }
-  .nav-btn { font-size: 18px; padding: 14px 18px; }
-  input, select, textarea, button { font-size: 18px; padding: 14px; }
-  .presentation-block { padding: 18px; font-size: 18px; }
-  #message { font-size: 18px; }
+  .nav-btn { font-size: 20px; padding: 16px 20px; }
+  input, select, textarea, button { font-size: 20px; padding: 16px; }
+  .presentation-block { padding: 22px; font-size: 20px; border-radius: 14px; }
+  #message { font-size: 20px; }
 }
 </style>
-
 </head>
 <body>
 
@@ -120,11 +132,11 @@ footer {
   </div>
 </header>
   
-<div style="border: 2px solid #444; padding: 12px 15px; border-radius: 6px; background: #fff; margin-bottom: 25px;">
-  <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #000; text-align: center; font-weight: bold;">
+<div style="border: 2px solid #444; padding: 15px 20px; border-radius: 10px; background: #fff; margin-bottom: 25px;">
+  <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #000; text-align: center; font-weight: bold;">
     Instructions for Email/Name
   </h3>
-  <p style="margin: 0; font-size: 14px; color: #000; line-height: 1.45; text-align: left;">
+  <p style="margin: 0; font-size: 16px; color: #000; line-height: 1.6; text-align: left;">
     <strong>Students:</strong> Please enter your faculty email (...@natur.cuni.cz) or IOCB email (...@uochb.cas.cz).<br>
     <strong>Academic staff:</strong> Please enter your full name (name and surname).
   </p>
@@ -147,13 +159,13 @@ footer {
 <div id="message" aria-live="polite"></div>
 
 <script>
-// ---------- UTILITY ----------
+// ------------------- Utility & Config -------------------
 const DRAFT_KEY = 'phd_eval_draft';
 function debounce(fn, wait=300){ let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), wait); }; }
-function safeIdForDoc(str){ return str ? String(str).trim().replace(/[.#$/\\[\\]]/g, '_') : ''; }
-function showMessage(text, type){ const el = document.getElementById('message'); el.textContent = text || ''; el.className = type==='error'?'error':(type==='success'?'success':''); }
+function safeIdForDoc(str){ if(!str) return ''; return String(str).trim().replace(/[.#$/\\[\\]]/g, '_'); }
+function showMessage(text, type){ const el = document.getElementById('message'); el.textContent = text || ''; el.className = type === 'error' ? 'error' : (type === 'success' ? 'success' : ''); }
 
-// ---------- FIREBASE ----------
+// ------------------- Firebase init -------------------
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -162,17 +174,11 @@ const firebaseConfig = {
   messagingSenderId: "1042633812969",
   appId: "1:1042633812969:web:7fa70745a53338ec5ab978"
 };
-
 let db = null;
-try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.firestore();
-} catch(e){
-  console.error('Firebase init error', e);
-  showMessage('Warning: backend failed to initialize. Drafts will still be saved locally.', 'error');
-}
+try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); } 
+catch (e) { console.error('Firebase init error', e); showMessage('Warning: backend failed to initialize. Drafts will still be saved locally.', 'error'); }
 
-// ---------- DATA ----------
+// ------------------- Data -------------------
 const seminars = [
   { name: "Seminar 1", date: "2025-11-14" },
   { name: "Seminar 2", date: "2025-12-12" },
@@ -181,27 +187,24 @@ const seminars = [
   { name: "Seminar 5", date: "2026-04-10" },
   { name: "Seminar 6", date: "2026-05-15" }
 ];
+
 const presentationsBySeminar = {
-  "Seminar 1": ["Marko Boskovic","Büşra Buse Tütüncü","Samanta Rožánková","Yu-Wei Tu"],
-  "Seminar 2": ["Bart Kieftenbelt","Ema Bažíková","Pratibha Choudhari"],
-  "Seminar 3": ["Anna-Marie Dušková","Pallavi Halkarni","Pipatpon Raksapon","Ondřej Daněk"],
-  "Seminar 4": ["Filip Trajhan","Alicia León Rodríguez","Jakub Krištof","Andrea Vopálenská"],
-  "Seminar 5": ["Ondřej Hladík","Lucie Černá","Shubham Bhatt","Nidhi Sinha"],
-  "Seminar 6": ["Najam Ul Sahar","Jyotpreet Kaur","Sandip Baban Shinde","Dominik Kunák"]
+  "Seminar 1": ["Marko Boskovic", "Büşra Buse Tütüncü", "Samanta Rožánková", "Yu-Wei Tu"],
+  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Pratibha Choudhari"],
+  "Seminar 3": ["Anna-Marie Dušková", "Pallavi Halkarni", "Pipatpon Raksapon", "Ondřej Daněk"],
+  "Seminar 4": ["Filip Trajhan", "Alicia León Rodríguez", "Jakub Krištof", "Andrea Vopálenská"],
+  "Seminar 5": ["Ondřej Hladík", "Lucie Černá", "Shubham Bhatt", "Nidhi Sinha"],
+  "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
-// ---------- DOM ----------
+// ------------------- DOM refs -------------------
 const seminarSelect = document.getElementById("seminar");
 const presDiv = document.getElementById("presentations");
 const form = document.getElementById("voteForm");
-const submitBtn = document.getElementById("submitBtn");
 const participantInput = document.getElementById("participantId");
+const submitBtn = document.getElementById("submitBtn");
 
-// ---------- BEFORE UNLOAD ----------
-function beforeUnloadListener(e){ e.preventDefault(); e.returnValue=''; }
-window.addEventListener('beforeunload', beforeUnloadListener);
-
-// ---------- SEMINAR DROPDOWN ----------
+// ------------------- Populate seminars -------------------
 function updateSeminarDropdown(){
   seminarSelect.innerHTML = '<option value="">--Select--</option>';
   const now = new Date();
@@ -211,21 +214,21 @@ function updateSeminarDropdown(){
     const opt = document.createElement('option');
     opt.value = s.name;
     opt.textContent = `${s.name} on ${date.toLocaleDateString('en-GB')}`;
-    if(now < openDate){ opt.disabled=true; opt.textContent+=' (not yet open)'; opt.title=`Voting opens ${openDate.toLocaleDateString('en-GB')}`; }
+    if(now < openDate){ opt.disabled = true; opt.textContent += ' (not yet open)'; opt.title = `Voting opens ${openDate.toLocaleDateString('en-GB')}`; }
     seminarSelect.appendChild(opt);
   });
 }
 updateSeminarDropdown();
 
-// ---------- RENDER PRESENTATIONS ----------
+// ------------------- Render presentations -------------------
 function renderPresentations(seminar){
   presDiv.innerHTML = '';
   if(!seminar) return;
   const list = presentationsBySeminar[seminar] || [];
-  list.forEach((name,i)=>{
+  list.forEach((name, i)=>{
     const block = document.createElement('div');
-    block.className='presentation-block';
-    block.innerHTML=`
+    block.className = 'presentation-block';
+    block.innerHTML = `
       <h3>${name}</h3>
       <label>Score (1 = worst, 10 = best)</label>
       <select id="pres${i+1}" data-idx="${i}" required>
@@ -242,118 +245,85 @@ function renderPresentations(seminar){
     presDiv.appendChild(block);
     const checkbox = block.querySelector(`#nocmt${i+1}`);
     const textarea = block.querySelector(`#comment${i+1}`);
-    checkbox.addEventListener('change', ()=>{
-      textarea.disabled = checkbox.checked;
-      if(checkbox.checked) textarea.value='';
-      saveDraftDebounced();
-    });
+    checkbox.addEventListener('change', ()=>{ textarea.disabled = checkbox.checked; if(checkbox.checked) textarea.value=''; saveDraftDebounced(); });
   });
   loadDraftIntoDOM();
 }
 
-// ---------- DRAFT ----------
+// ------------------- Draft save/load -------------------
 function gatherDraft(){
-  const draft = { participantId: participantInput.value || '', seminar: seminarSelect.value || '', presentations: [] };
+  const draft={ participantId: participantInput.value || '', seminar: seminarSelect.value || '', presentations: [] };
   const seminar = seminarSelect.value;
   if(seminar && presentationsBySeminar[seminar]){
     presentationsBySeminar[seminar].forEach((_,i)=>{
-      const score = document.getElementById(`pres${i+1}`)?.value || '';
-      const comment = document.getElementById(`comment${i+1}`)?.value || '';
-      const noComment = document.getElementById(`nocmt${i+1}`)?.checked || false;
-      draft.presentations.push({ score, comment, noComment });
+      const score=document.getElementById(`pres${i+1}`)?.value || '';
+      const comment=document.getElementById(`comment${i+1}`)?.value || '';
+      const noComment=document.getElementById(`nocmt${i+1}`)?.checked || false;
+      draft.presentations.push({score, comment, noComment});
     });
   }
-  draft.savedAt = new Date().toISOString();
+  draft.savedAt=new Date().toISOString();
   return draft;
 }
-function saveDraft(){ try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(gatherDraft())); }catch(e){console.error(e);} }
-const saveDraftDebounced = debounce(saveDraft, 300);
+function saveDraft(){ try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(gatherDraft())); }catch(e){ console.error(e); } }
+const saveDraftDebounced = debounce(saveDraft,300);
 function loadDraftIntoDOM(){
   try{
     const raw = localStorage.getItem(DRAFT_KEY);
     if(!raw) return;
     const data = JSON.parse(raw);
-    if(data.participantId) participantInput.value=data.participantId;
-    if(data.seminar && !seminarSelect.value) seminarSelect.value=data.seminar;
+    if(data.participantId) participantInput.value = data.participantId;
+    if(data.seminar && !seminarSelect.value) seminarSelect.value = data.seminar;
     if(data.presentations && data.presentations.length){
       data.presentations.forEach((p,i)=>{
         const scoreEl = document.getElementById(`pres${i+1}`);
         const cmtEl = document.getElementById(`comment${i+1}`);
         const chkEl = document.getElementById(`nocmt${i+1}`);
-        if(scoreEl) scoreEl.value=p.score||'';
-        if(chkEl) chkEl.checked=p.noComment||false;
-        if(cmtEl){ cmtEl.value=p.comment||''; cmtEl.disabled=chkEl?.checked||false; }
+        if(scoreEl) scoreEl.value = p.score || '';
+        if(chkEl) chkEl.checked = p.noComment || false;
+        if(cmtEl){ cmtEl.value = p.comment || ''; cmtEl.disabled = chkEl?.checked || false; }
       });
     }
   }catch(e){ console.error(e); }
 }
 
-// ---------- EVENTS ----------
+// ------------------- Hook up events -------------------
 seminarSelect.addEventListener('change', ()=>{ renderPresentations(seminarSelect.value); saveDraftDebounced(); });
 document.addEventListener('input', saveDraftDebounced);
 participantInput.addEventListener('input', saveDraftDebounced);
 
-(function restoreOnLoad(){
-  try{
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if(raw){
-      const data = JSON.parse(raw);
-      if(data.seminar){
-        const opt = Array.from(seminarSelect.options).find(o=>o.value===data.seminar);
-        if(opt) seminarSelect.value=data.seminar;
-      }
-    }
-  }catch(e){}
-  if(seminarSelect.value) renderPresentations(seminarSelect.value);
-  loadDraftIntoDOM();
-})();
-
-// ---------- SUBMIT ----------
-let isSubmitting=false;
-form.addEventListener('submit', async(e)=>{
+// ------------------- Submit handling -------------------
+form.addEventListener('submit', async (e)=>{
   e.preventDefault();
-  showMessage('','');
-  if(isSubmitting) return;
-  isSubmitting=true;
-  submitBtn.disabled=true;
-  window.removeEventListener('beforeunload', beforeUnloadListener);
-
+  showMessage('');
+  submitBtn.disabled = true;
   try{
-    const participantIdRaw=participantInput.value.trim();
-    const seminar=seminarSelect.value;
-    if(!participantIdRaw||!seminar){ showMessage('Please fill in all required fields.','error'); return; }
-    const list=presentationsBySeminar[seminar];
-    if(!list||!list.length){ showMessage('No presentations found for selected seminar.','error'); return; }
-
+    const participantIdRaw = participantInput.value.trim();
+    const seminar = seminarSelect.value;
+    if(!participantIdRaw || !seminar){ showMessage('Please fill in all required fields.', 'error'); submitBtn.disabled=false; return; }
+    const list = presentationsBySeminar[seminar];
     const evaluations=[];
     for(let i=0;i<list.length;i++){
-      const scoreEl=document.getElementById(`pres${i+1}`);
-      const chkEl=document.getElementById(`nocmt${i+1}`);
-      const cmtEl=document.getElementById(`comment${i+1}`);
+      const scoreEl = document.getElementById(`pres${i+1}`);
+      const chkEl = document.getElementById(`nocmt${i+1}`);
+      const cmtEl = document.getElementById(`comment${i+1}`);
       const score=scoreEl?.value;
       const noComment=chkEl?.checked||false;
       const comment=noComment?'':(cmtEl?.value.trim()||'');
-      if(!score){ showMessage('Please fill in a score for each presentation.','error'); return; }
+      if(!score){ showMessage('Please fill in a score for each presentation.', 'error'); submitBtn.disabled=false; return; }
       evaluations.push({ name:list[i], score:parseInt(score,10), comment });
     }
-
-    const safeId=safeIdForDoc(`${participantIdRaw}_${seminar}`);
-    const docRef=db?db.collection('votes').doc(safeId):null;
-    if(!docRef){ window.addEventListener('beforeunload', beforeUnloadListener); showMessage('Backend not available. Your evaluation is saved locally as a draft.','error'); saveDraft(); return; }
-
-    let existing=null;
-    try{ existing=await docRef.get(); }catch(err){ console.warn(err); }
-    if(existing && existing.exists){ showMessage('You have already submitted an evaluation for this seminar.','error'); return; }
-
-    try{
-      await docRef.set({ participantId:participantIdRaw, seminar, presentations:evaluations, timestamp:firebase.firestore.FieldValue.serverTimestamp() });
-      showMessage('Evaluation submitted successfully. Thank you!','success');
-      localStorage.removeItem(DRAFT_KEY);
-      form.reset();
-      presDiv.innerHTML='';
-    }catch(err){ console.error(err); saveDraft(); showMessage('An error occurred while submitting. Your evaluation was saved locally as a draft.','error'); }
-  }catch(ex){ console.error(ex); showMessage('An unexpected error occurred. Please try again.','error'); }
-  finally{ isSubmitting=false; submitBtn.disabled=false; window.addEventListener('beforeunload', beforeUnloadListener); }
+    const safeId = safeIdForDoc(`${participantIdRaw}_${seminar}`);
+    const docRef = db ? db.collection('votes').doc(safeId) : null;
+    if(!docRef){ showMessage('Backend not available. Draft saved locally.', 'error'); saveDraft(); submitBtn.disabled=false; return; }
+    const existing = await docRef.get();
+    if(existing && existing.exists){ showMessage('You have already submitted an evaluation.', 'error'); submitBtn.disabled=false; return; }
+    await docRef.set({ participantId: participantIdRaw, seminar, presentations:evaluations, timestamp:firebase.firestore.FieldValue.serverTimestamp() });
+    showMessage('Evaluation submitted successfully. Thank you!','success');
+    localStorage.removeItem(DRAFT_KEY);
+    form.reset(); presDiv.innerHTML='';
+  }catch(err){ console.error(err); showMessage('An error occurred. Draft saved locally.','error'); saveDraft(); }
+  submitBtn.disabled=false;
 });
 </script>
 
