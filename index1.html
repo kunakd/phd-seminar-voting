@@ -9,62 +9,73 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
+/* Globální reset + box-sizing */
+* {
+  box-sizing: border-box;
+}
+
 html, body {
   min-height: 100%;
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
   font-size: 16px;
   background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
+
 body {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 30px 20px;
   flex: 1;
+  padding: 20px;
 }
+
+/* Header */
 header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
-header img { height: 120px; margin-bottom: 10px; }
+header img { height: 120px; margin-bottom: 10px; max-width: 100%; object-fit: contain; }
 header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 
+/* Navbar */
 .navbar {
   display: flex;
   justify-content: center;
   gap: 15px;
-  margin-top: 20px;
   flex-wrap: wrap;
 }
-
 .nav-btn {
-  padding: 14px 20px;
+  padding: 12px 16px;
   background: #4a4a4a;
   color: white;
   border-radius: 8px;
   text-decoration: none;
-  font-size: 18px;
+  font-size: 16px;
   transition: background 0.2s;
 }
+.nav-btn:hover { background: #000; }
 
-.nav-btn:hover {
-  background: #000;
-}
-
+/* Form Elements */
 label { display:block; margin-top:15px; font-weight:bold; }
-input, select, textarea, button { width:100%; padding:14px; margin-top:8px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; font-size:18px; }
+input, select, textarea, button {
+  width: 100%;
+  padding: 14px;
+  margin-top:8px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size: 18px;
+}
 textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
+textarea:disabled { background-color: #eee; color: #666; }
+
 button { cursor: pointer; background-color: #4a90e2; color: white; border: none; transition: background-color 0.2s; }
 button:hover { background-color: #357ABD; }
 
-.success { color: green; margin-top:20px; font-size:18px; }
-.error { color: red; margin-top:20px; font-size:18px; }
-
+/* Presentation blocks */
 .presentation-block { 
   border: 1px solid #ccc; 
   border-radius: 12px; 
@@ -74,14 +85,15 @@ button:hover { background-color: #357ABD; }
   box-shadow: 2px 2px 10px rgba(0,0,0,0.08); 
   font-size:18px; 
   transition: transform 0.1s;
+  width: 100%;
 }
 .presentation-block:hover { transform: scale(1.02); }
 .presentation-block h3 { margin-top: 0; color: #444; }
 
+/* Checkbox styling */
 .checkbox-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 10px;
   margin-top: 8px;
 }
@@ -90,43 +102,44 @@ button:hover { background-color: #357ABD; }
   cursor:pointer;
   transform: scale(1.3);
 }
-.checkbox-row label {
-  margin: 0;
-  cursor: pointer;
-}
+.checkbox-row label { margin: 0; cursor: pointer; }
 
-textarea:disabled { background-color: #eee; color: #666; }
+/* Messages */
+.success { color: green; margin-top:20px; font-size:18px; }
+.error { color: red; margin-top:20px; font-size:18px; }
 
+/* Footer */
 footer {
   background-color: #ffffff;
   text-align: center;
-  padding: 25px 15px;
+  padding: 20px 10px;
   font-size: 14px;
   color: #000;
   border-top: 1px solid #ccc;
   margin-top: auto;
 }
+footer img { height: 55px; margin-bottom: 10px; max-width: 100%; }
 
-/* Mobile optimization */
+/* Mobile-specific adjustments */
 @media (max-width: 600px) {
   body { padding: 15px; font-size: 18px; }
   header img { height: 100px; }
   header h1 { font-size: 24px; }
-  .nav-btn { font-size: 20px; padding: 16px 20px; }
-  input, select, textarea, button { font-size: 20px; padding: 16px; }
-  .presentation-block { padding: 22px; font-size: 20px; border-radius: 14px; }
-  #message { font-size: 20px; }
+  .nav-btn { font-size: 18px; padding: 14px 16px; }
+  input, select, textarea, button { font-size: 18px; padding: 14px; }
+  .presentation-block { padding: 18px; font-size: 18px; border-radius: 12px; }
+  #message { font-size: 18px; }
 
-  /* Fix submit button to bottom */
+  /* Fixed submit button at bottom */
   #submitBtn {
     position: fixed;
     bottom: 15px;
-    left: 15px;
-    right: 15px;
+    left: 10px;
+    right: 10px;
     z-index: 1000;
-    font-size: 20px;
+    font-size: 18px;
     border-radius: 10px;
-    padding: 16px;
+    padding: 14px;
   }
 }
 </style>
@@ -137,7 +150,6 @@ footer {
   <img src="logo.jpg" alt="Department Logo">
   <h1>PhD Seminar Evaluation</h1>
 
-  <!-- NAVIGATION BUTTONS -->
   <div class="navbar">
     <a href="https://kunakd.github.io/phd-seminar-voting/results.html" class="nav-btn">Results</a>
     <a href="https://kunakd.github.io/phd-seminar-voting/feedback.html" class="nav-btn">Feedback</a>
@@ -340,7 +352,7 @@ form.addEventListener('submit', async (e)=>{
 </script>
 
 <footer>
-  <img src="logo.jpg" alt="Faculty Logo" style="height: 55px; margin-bottom: 10px;">
+  <img src="logo.jpg" alt="Faculty Logo">
   <p style="margin: 6px 0;">© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
   <p style="margin: 6px 0;">Hlavova 2030/8, Prague 2, 128 00 | Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
   <p style="margin: 6px 0;"><a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">https://orgchem.natur.cuni.cz</a></p>
