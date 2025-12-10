@@ -69,14 +69,22 @@ select, input, textarea { margin-bottom: 12px; }
 textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
 textarea:disabled { background-color: #eee; color: #666; }
 
-button {
-  cursor: pointer;
-  background-color: #4a90e2;
-  color: white;
+/* Submit button neon green globally */
+#submitBtn {
+  background-color: #39FF14; /* neonově zelené */
+  color: #000; /* černý text */
   border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 18px;
+  cursor: pointer;
   transition: background-color 0.2s;
+  text-align: center;
 }
-button:hover { background-color: #357ABD; }
+
+#submitBtn:hover {
+  background-color: #32CC12; /* tmavší neon při hover */
+}
 
 /* Presentation blocks */
 .presentation-block { 
@@ -141,20 +149,13 @@ footer img { height: 55px; margin-bottom: 10px; max-width: 100%; }
   .presentation-block { padding: 22px; font-size: 20px; border-radius: 14px; }
   #message { font-size: 20px; }
 
-  /* Submit button neon green, black text, fixed bottom with margin */
+  /* Submit button fixed bottom for mobile */
   #submitBtn {
     position: fixed;
     bottom: 15px;
     left: 10px;
     right: 10px;
     z-index: 1000;
-    font-size: 20px;
-    border-radius: 12px;
-    padding: 18px;
-    background-color: #39FF14; /* neonově zelené */
-    color: #000;
-    text-align: center;
-    margin-top: 15px;
   }
 }
 </style>
