@@ -70,13 +70,26 @@ input, select, textarea, button {
   font-size:18px;
   box-sizing:border-box;
 }
+
+/* 🔥 NEONOVÉ TLAČÍTKO */
+#submitBtn {
+  background-color: #39ff14;
+  color: #000;
+  font-weight: bold;
+  font-size: 18px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+#submitBtn:hover {
+  background-color: #2cff0f;
+}
+
 textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
 textarea:disabled { background-color: #eee; color: #666; }
-button { font-size:18px; margin-top:10px; cursor: pointer; }
 
 /* Messages */
-.success { color: green; margin-top:20px; font-size:18px; }
-.error { color: red; margin-top:20px; font-size:18px; }
+.success { color: green; margin-top:20px; font-size:18px; text-align:center; }
+.error { color: red; margin-top:20px; font-size:18px; text-align:center; }
 
 /* Presentation blocks */
 .presentation-block { 
@@ -113,12 +126,12 @@ button { font-size:18px; margin-top:10px; cursor: pointer; }
 .instructions h3 {
   font-weight:bold;
   font-size:20px;
-  margin-top: 0;         /* 🔥 ZMENŠENÁ MEZERA NAD NADPISEM */
+  margin-top: 0;
   margin-bottom:10px;
 }
 .instructions p {
   margin:0;
-  white-space: normal;   /* 🔥 ZAMEZÍ VZNIKU POSUVNÍKU */
+  white-space: normal;
 }
 
 /* Footer */
@@ -134,7 +147,6 @@ footer {
 footer img { height: 60px; margin-bottom: 10px; }
 footer p { margin: 6px 0; font-size:16px; }
 
-/* Mobile-specific adjustments */
 @media (max-width: 600px) {
   body { padding: 15px; font-size:16px; }
   header img { height: 90px; }
@@ -341,7 +353,10 @@ form.addEventListener('submit', async (e)=>{
     const existing = await docRef.get();
     if(existing && existing.exists){ showMessage('You have already submitted an evaluation.', 'error'); submitBtn.disabled=false; return; }
     await docRef.set({ participantId: participantIdRaw, seminar, presentations:evaluations, timestamp:firebase.firestore.FieldValue.serverTimestamp() });
-    showMessage('Evaluation submitted successfully. Thank you!','success');
+
+    /* 🔥 ÚPRAVA: ZOBRAZENÍ TVÉHO TEXTU */
+    showMessage('Thank you for your evaluation!!!','success');
+
     localStorage.removeItem(DRAFT_KEY);
     form.reset(); presDiv.innerHTML='';
   }catch(err){ console.error(err); showMessage('An error occurred. Draft saved locally.','error'); saveDraft(); }
