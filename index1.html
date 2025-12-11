@@ -9,7 +9,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-/* Globální reset + box-sizing */
 * { box-sizing: border-box; }
 
 html, body {
@@ -30,7 +29,6 @@ body {
   flex: 1;
 }
 
-/* Header */
 header {
   display: flex;
   flex-direction: column;
@@ -40,7 +38,6 @@ header {
 header img { height: 120px; margin-bottom: 10px; }
 header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 
-/* Navbar */
 .navbar {
   display: flex;
   justify-content: center;
@@ -59,7 +56,6 @@ header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 }
 .nav-btn:hover { background: #000; }
 
-/* Form Elements */
 label { display:block; margin-top:15px; font-weight:bold; font-size:18px; }
 input, select, textarea, button {
   width:100%;
@@ -71,7 +67,6 @@ input, select, textarea, button {
   box-sizing:border-box;
 }
 
-/* Neonové tlačítko */
 #submitBtn {
   background-color: #39ff14;
   color: #000;
@@ -80,17 +75,13 @@ input, select, textarea, button {
   margin-top: 12px;
   cursor: pointer;
 }
-#submitBtn:hover {
-  background-color: #2cff0f;
-}
+#submitBtn:hover { background-color: #2cff0f; }
 
-textarea { resize: vertical; }
+textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
 
-/* Messages */
 .success { color: green; margin-top:20px; font-size:18px; text-align:center; }
 .error { color: red; margin-top:20px; font-size:18px; text-align:center; }
 
-/* Presentation blocks */
 .presentation-block { 
   border: 1px solid #ccc; 
   border-radius: 10px; 
@@ -101,19 +92,6 @@ textarea { resize: vertical; }
   font-size:18px; 
 }
 .presentation-block h3 { margin-top: 0; color: #444; font-size:20px; }
-
-/* Footer */
-footer {
-  background-color: #ffffff;
-  text-align: center;
-  padding: 25px 15px;
-  font-size: 16px;
-  color: #000;
-  border-top: 1px solid #ccc;
-  margin-top: auto;
-}
-footer img { height: 60px; margin-bottom: 10px; }
-footer p { margin: 6px 0; font-size:16px; }
 
 @media (max-width: 600px) {
   body { padding: 15px; font-size:16px; }
@@ -139,10 +117,8 @@ footer p { margin: 6px 0; font-size:16px; }
 </header>
 
 <form id="voteForm">
-
-  <!-- 🔥 ZMĚNĚNO: Your Email -->
   <label for="participantId">Your Email</label>
-  <input type="text" id="participantId" required>
+  <input type="email" id="participantId" required>
 
   <label for="seminar">Select seminar</label>
   <select id="seminar" required>
@@ -157,17 +133,11 @@ footer p { margin: 6px 0; font-size:16px; }
 <div id="message" aria-live="polite"></div>
 
 <script>
-// ------------------- Utility -------------------
 const DRAFT_KEY = 'phd_eval_draft';
 function debounce(fn, wait=300){ let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), wait); }; }
-function safeIdForDoc(str){ return String(str).trim().replace(/[.#$/\\[\\]]/g, '_'); }
-function showMessage(text,type){
-  const el=document.getElementById('message');
-  el.textContent=text||'';
-  el.className=type==='error'?'error':(type==='success'?'success':'');
-}
+function safeIdForDoc(str){ if(!str) return ''; return String(str).trim().replace(/[.#$/\\[\\]]/g, '_'); }
+function showMessage(text, type){ const el = document.getElementById('message'); el.textContent = text || ''; el.className = type === 'error' ? 'error' : (type === 'success' ? 'success' : ''); }
 
-// ------------------- Firebase init -------------------
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -176,128 +146,136 @@ const firebaseConfig = {
   messagingSenderId: "1042633812969",
   appId: "1:1042633812969:web:7fa70745a53338ec5ab978"
 };
-let db=null;
-try{ firebase.initializeApp(firebaseConfig); db=firebase.firestore(); }
-catch(e){ console.error(e); }
+let db = null;
+try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); } 
+catch (e) { console.error('Firebase init error', e); showMessage('Warning: backend failed to initialize. Drafts will still be saved locally.', 'error'); }
 
-// ------------------- Data -------------------
-const seminars=[
-  { name:"Seminar 1", date:"2025-11-14" },
-  { name:"Seminar 2", date:"2025-12-12" },
-  { name:"Seminar 3", date:"2026-01-16" },
-  { name:"Seminar 4", date:"2022026-02-13" }, 
-  { name:"Seminar 5", date:"2026-04-10" },
-  { name:"Seminar 6", date:"2026-05-15" }
+const seminars = [
+  { name: "Seminar 1", date: "2025-11-14" },
+  { name: "Seminar 2", date: "2025-12-12" },
+  { name: "Seminar 3", date: "2026-01-16" },
+  { name: "Seminar 4", date: "2026-02-13" },
+  { name: "Seminar 5", date: "2026-04-10" },
+  { name: "Seminar 6", date: "2026-05-15" }
 ];
-
-const presentationsBySeminar={
-  "Seminar 1":["Marko Boskovic","Büşra Buse Tütüncü","Samanta Rožánková","Yu-Wei Tu"],
-  "Seminar 2":["Bart Kieftenbelt","Ema Bažíková","Pratibha Choudhari"],
-  "Seminar 3":["Anna-Marie Dušková","Pallavi Halkarni","Pipatpon Raksapon","Ondřej Daněk"],
-  "Seminar 4":["Filip Trajhan","Alicia León Rodríguez","Jakub Krištof","Andrea Vopálenská"],
-  "Seminar 5":["Ondřej Hladík","Lucie Černá","Shubham Bhatt","Nidhi Sinha"],
-  "Seminar 6":["Najam Ul Sahar","Jyotpreet Kaur","Sandip Baban Shinde","Dominik Kunák"]
+const presentationsBySeminar = {
+  "Seminar 1": ["Marko Boskovic", "Büşra Buse Tütüncü", "Samanta Rožánková", "Yu-Wei Tu"],
+  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Pratibha Choudhari"],
+  "Seminar 3": ["Anna-Marie Dušková", "Pallavi Halkarni", "Pipatpon Raksapon", "Ondřej Daněk"],
+  "Seminar 4": ["Filip Trajhan", "Alicia León Rodríguez", "Jakub Krištof", "Andrea Vopálenská"],
+  "Seminar 5": ["Ondřej Hladík", "Lucie Černá", "Shubham Bhatt", "Nidhi Sinha"],
+  "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
-// ------------------- DOM refs -------------------
-const seminarSelect=document.getElementById("seminar");
-const presDiv=document.getElementById("presentations");
-const form=document.getElementById("voteForm");
-const participantInput=document.getElementById("participantId");
-const submitBtn=document.getElementById("submitBtn");
+const seminarSelect = document.getElementById("seminar");
+const presDiv = document.getElementById("presentations");
+const form = document.getElementById("voteForm");
+const participantInput = document.getElementById("participantId");
 
-// ------------------- Populate seminars -------------------
 function updateSeminarDropdown(){
-  seminarSelect.innerHTML='<option value="">--Select--</option>';
+  seminarSelect.innerHTML = '<option value="">--Select--</option>';
+  const now = new Date();
   seminars.forEach(s=>{
-    const opt=document.createElement('option');
-    opt.value=s.name;
-    opt.textContent=s.name;
+    const date = new Date(s.date);
+    const openDate = new Date(date); openDate.setDate(openDate.getDate()-1);
+    const opt = document.createElement('option');
+    opt.value = s.name;
+    opt.textContent = `${s.name} on ${date.toLocaleDateString('en-GB')}`;
+    if(now < openDate){ opt.disabled = true; opt.textContent += ' (not yet open)'; opt.title = `Voting opens ${openDate.toLocaleDateString('en-GB')}`; }
     seminarSelect.appendChild(opt);
   });
 }
 updateSeminarDropdown();
 
-// ------------------- Render presentations -------------------
 function renderPresentations(seminar){
-  presDiv.innerHTML='';
+  presDiv.innerHTML = '';
   if(!seminar) return;
-  const list=presentationsBySeminar[seminar]||[];
-  list.forEach((name,i)=>{
-    const block=document.createElement('div');
-    block.className='presentation-block';
-    block.innerHTML=`
+  const list = presentationsBySeminar[seminar] || [];
+  list.forEach((name, i)=>{
+    const block = document.createElement('div');
+    block.className = 'presentation-block';
+    block.innerHTML = `
       <h3>${name}</h3>
-
       <label>Score (1 = worst, 10 = best)</label>
-      <select id="pres${i+1}" required>
+      <select id="pres${i+1}" data-idx="${i}" required>
         <option value="">--Select--</option>
         ${Array.from({length:10},(_,x)=>`<option value="${x+1}">${x+1}</option>`).join('')}
       </select>
-
-      <label>What should be improved? (optional)</label>
-      <textarea id="comment${i+1}" rows="3"></textarea>
+      <label>What should be improved?</label>
+      <textarea id="comment${i+1}" data-idx="${i}" rows="3"></textarea>
     `;
     presDiv.appendChild(block);
   });
+  loadDraft();
 }
 
+// ------------------- Draft save/load -------------------
+function gatherDraft(){
+  const draft = { participant: participantInput.value, seminar: seminarSelect.value, presentations: [] };
+  const list = presentationsBySeminar[seminarSelect.value] || [];
+  list.forEach((_, i)=>{
+    draft.presentations.push({
+      score: document.getElementById(`pres${i+1}`)?.value || '',
+      comment: document.getElementById(`comment${i+1}`)?.value || ''
+    });
+  });
+  return draft;
+}
+
+function saveDraft(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(gatherDraft())); }
+const saveDraftDebounced = debounce(saveDraft, 300);
+
+function loadDraft(){
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if(!raw) return;
+  try{
+    const data = JSON.parse(raw);
+    if(data.participant) participantInput.value = data.participant;
+    if(data.seminar && !seminarSelect.value) seminarSelect.value = data.seminar;
+    const list = presentationsBySeminar[data.seminar] || [];
+    list.forEach((_, i)=>{
+      const scoreEl = document.getElementById(`pres${i+1}`);
+      const commentEl = document.getElementById(`comment${i+1}`);
+      if(scoreEl) scoreEl.value = data.presentations[i]?.score || '';
+      if(commentEl) commentEl.value = data.presentations[i]?.comment || '';
+    });
+  }catch(e){ console.error(e); }
+}
+
+document.addEventListener('input', saveDraftDebounced);
+seminarSelect.addEventListener('change', ()=>{ renderPresentations(seminarSelect.value); saveDraftDebounced(); });
+participantInput.addEventListener('input', saveDraftDebounced);
+
 // ------------------- Submit handling -------------------
-form.addEventListener('submit', async e=>{
+form.addEventListener('submit', async (e)=>{
   e.preventDefault();
   showMessage('');
-  submitBtn.disabled=true;
+  const participant = participantInput.value.trim();
+  const seminar = seminarSelect.value;
+  if(!participant || !seminar){ showMessage('Please fill in all required fields.', 'error'); return; }
+
+  const list = presentationsBySeminar[seminar];
+  const evaluations=[];
+  for(let i=0;i<list.length;i++){
+    const score = document.getElementById(`pres${i+1}`)?.value;
+    const comment = document.getElementById(`comment${i+1}`)?.value.trim() || '';
+    if(!score){ showMessage('Please fill in a score for each presentation.', 'error'); return; }
+    evaluations.push({ name:list[i], score:parseInt(score,10), comment });
+  }
 
   try{
-    const participantId=participantInput.value.trim();
-    const seminar=seminarSelect.value;
-    if(!participantId||!seminar){
-      showMessage('Please fill in all required fields.','error');
-      submitBtn.disabled=false;
-      return;
+    if(db){
+      const safeId = safeIdForDoc(`${participant}_${seminar}`);
+      const docRef = db.collection('votes').doc(safeId);
+      const existing = await docRef.get();
+      if(existing && existing.exists){ showMessage('You have already submitted an evaluation.', 'error'); return; }
+      await docRef.set({ participant, seminar, presentations:evaluations, timestamp:firebase.firestore.FieldValue.serverTimestamp() });
     }
-
-    const list=presentationsBySeminar[seminar];
-    const evaluations=[];
-    for(let i=0;i<list.length;i++){
-      const score=document.getElementById(`pres${i+1}`).value;
-      const comment=document.getElementById(`comment${i+1}`).value.trim();
-      if(!score){
-        showMessage('Please fill in a score for each presentation.','error');
-        submitBtn.disabled=false;
-        return;
-      }
-      evaluations.push({ 
-        name:list[i],
-        score:parseInt(score,10),
-        comment: comment || ""   // OPTIONAL COMMENT
-      });
-    }
-
-    const safeId=safeIdForDoc(`${participantId}_${seminar}`);
-    const docRef=db.collection('votes').doc(safeId);
-    const existing=await docRef.get();
-    if(existing.exists){
-      showMessage('You have already submitted an evaluation.','error');
-      submitBtn.disabled=false;
-      return;
-    }
-
-    await docRef.set({
-      participantId,
-      seminar,
-      presentations:evaluations,
-      timestamp:firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    showMessage('Thank you for your evaluation!!!','success');
-    form.reset(); presDiv.innerHTML='';
-  }
-  catch(err){
-    console.error(err);
-    showMessage('An error occurred.','error');
-  }
-  submitBtn.disabled=false;
+    showMessage('Thank you for your evaluation!', 'success');
+    localStorage.removeItem(DRAFT_KEY);
+    form.reset();
+    presDiv.innerHTML='';
+  }catch(err){ console.error(err); showMessage('Error submitting evaluation.', 'error'); saveDraft(); }
 });
 </script>
 
@@ -306,7 +284,11 @@ form.addEventListener('submit', async e=>{
   <p>© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
   <p>Hlavova 2030/8, Prague 2, 128 00</p>
   <p>Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
-  <p><a href="https://orgchem.natur.cuni.cz" target="_blank" style="color:#000; text-decoration:none;">https://orgchem.natur.cuni.cz</a></p>
+  <p>
+    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color:#000; text-decoration:none;">
+      https://orgchem.natur.cuni.cz
+    </a>
+  </p>
 </footer>
 
 </body>
