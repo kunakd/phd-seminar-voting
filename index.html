@@ -9,7 +9,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-/* Globální reset + box-sizing */
 * { box-sizing: border-box; }
 
 html, body {
@@ -30,7 +29,6 @@ body {
   flex: 1;
 }
 
-/* Header */
 header {
   display: flex;
   flex-direction: column;
@@ -40,7 +38,6 @@ header {
 header img { height: 120px; margin-bottom: 10px; }
 header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 
-/* Navbar */
 .navbar {
   display: flex;
   justify-content: center;
@@ -59,7 +56,6 @@ header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
 }
 .nav-btn:hover { background: #000; }
 
-/* Form Elements */
 label { display:block; margin-top:15px; font-weight:bold; font-size:18px; }
 input, select, textarea, button {
   width:100%;
@@ -71,7 +67,6 @@ input, select, textarea, button {
   box-sizing:border-box;
 }
 
-/* 🔥 NEONOVÉ TLAČÍTKO */
 #submitBtn {
   background-color: #39ff14;
   color: #000;
@@ -80,18 +75,13 @@ input, select, textarea, button {
   margin-top: 12px;
   cursor: pointer;
 }
-#submitBtn:hover {
-  background-color: #2cff0f;
-}
+#submitBtn:hover { background-color: #2cff0f; }
 
 textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
-textarea:disabled { background-color: #eee; color: #666; }
 
-/* Messages */
 .success { color: green; margin-top:20px; font-size:18px; text-align:center; }
 .error { color: red; margin-top:20px; font-size:18px; text-align:center; }
 
-/* Presentation blocks */
 .presentation-block { 
   border: 1px solid #ccc; 
   border-radius: 10px; 
@@ -103,50 +93,6 @@ textarea:disabled { background-color: #eee; color: #666; }
 }
 .presentation-block h3 { margin-top: 0; color: #444; font-size:20px; }
 
-/* Checkbox styling */
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-.checkbox-row input[type="checkbox"] { width: auto; cursor:pointer; transform: scale(1.2); }
-.checkbox-row label { margin: 0; cursor: pointer; }
-
-/* Instructions block */
-.instructions {
-  border: 2px solid #444;
-  padding: 15px 20px;
-  border-radius: 8px;
-  background: #fff;
-  margin-bottom: 25px;
-  font-size:18px;
-  line-height:1.6;
-}
-.instructions h3 {
-  font-weight:bold;
-  font-size:20px;
-  margin-top: 0;
-  margin-bottom:10px;
-}
-.instructions p {
-  margin:0;
-  white-space: normal;
-}
-
-/* Footer */
-footer {
-  background-color: #ffffff;
-  text-align: center;
-  padding: 25px 15px;
-  font-size: 16px;
-  color: #000;
-  border-top: 1px solid #ccc;
-  margin-top: auto;
-}
-footer img { height: 60px; margin-bottom: 10px; }
-footer p { margin: 6px 0; font-size:16px; }
-
 @media (max-width: 600px) {
   body { padding: 15px; font-size:16px; }
   header img { height: 90px; }
@@ -155,7 +101,6 @@ footer p { margin: 6px 0; font-size:16px; }
   .nav-btn { font-size:16px; padding:12px 14px; }
   input, select, textarea, button { font-size:16px; padding:12px; }
   .presentation-block { padding:15px; font-size:16px; }
-  .instructions { font-size:16px; }
 }
 </style>
 </head>
@@ -171,15 +116,9 @@ footer p { margin: 6px 0; font-size:16px; }
   </div>
 </header>
 
-<div class="instructions">
-  <h3>Instructions for Email/Name</h3>
-  <p>Students: Please enter your faculty email (...@natur.cuni.cz) or IOCB email (...@uochb.cas.cz).</p>
-  <p>Academic staff: Please enter your full name (name and surname).</p>
-</div>
-
 <form id="voteForm">
-  <label for="participantId">Email/Name</label>
-  <input type="text" id="participantId" required>
+  <label for="participantId">Your Email</label>
+  <input type="email" id="participantId" required>
 
   <label for="seminar">Select seminar</label>
   <select id="seminar" required>
@@ -194,13 +133,11 @@ footer p { margin: 6px 0; font-size:16px; }
 <div id="message" aria-live="polite"></div>
 
 <script>
-// ------------------- Utility & Config -------------------
 const DRAFT_KEY = 'phd_eval_draft';
 function debounce(fn, wait=300){ let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), wait); }; }
 function safeIdForDoc(str){ if(!str) return ''; return String(str).trim().replace(/[.#$/\\[\\]]/g, '_'); }
 function showMessage(text, type){ const el = document.getElementById('message'); el.textContent = text || ''; el.className = type === 'error' ? 'error' : (type === 'success' ? 'success' : ''); }
 
-// ------------------- Firebase init -------------------
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -213,7 +150,6 @@ let db = null;
 try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); } 
 catch (e) { console.error('Firebase init error', e); showMessage('Warning: backend failed to initialize. Drafts will still be saved locally.', 'error'); }
 
-// ------------------- Data -------------------
 const seminars = [
   { name: "Seminar 1", date: "2025-11-14" },
   { name: "Seminar 2", date: "2025-12-12" },
@@ -231,14 +167,11 @@ const presentationsBySeminar = {
   "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
-// ------------------- DOM refs -------------------
 const seminarSelect = document.getElementById("seminar");
 const presDiv = document.getElementById("presentations");
 const form = document.getElementById("voteForm");
 const participantInput = document.getElementById("participantId");
-const submitBtn = document.getElementById("submitBtn");
 
-// ------------------- Populate seminars -------------------
 function updateSeminarDropdown(){
   seminarSelect.innerHTML = '<option value="">--Select--</option>';
   const now = new Date();
@@ -254,7 +187,6 @@ function updateSeminarDropdown(){
 }
 updateSeminarDropdown();
 
-// ------------------- Render presentations -------------------
 function renderPresentations(seminar){
   presDiv.innerHTML = '';
   if(!seminar) return;
@@ -271,114 +203,94 @@ function renderPresentations(seminar){
       </select>
       <label>What should be improved?</label>
       <textarea id="comment${i+1}" data-idx="${i}" rows="3"></textarea>
-      <div class="checkbox-row">
-        <input type="checkbox" id="nocmt${i+1}" data-idx="${i}">
-        <label for="nocmt${i+1}">No comments</label>
-      </div>
     `;
     presDiv.appendChild(block);
-    const checkbox = block.querySelector(`#nocmt${i+1}`);
-    const textarea = block.querySelector(`#comment${i+1}`);
-    checkbox.addEventListener('change', ()=>{ textarea.disabled = checkbox.checked; if(checkbox.checked) textarea.value=''; saveDraftDebounced(); });
   });
-  loadDraftIntoDOM();
+  loadDraft();
 }
 
 // ------------------- Draft save/load -------------------
 function gatherDraft(){
-  const draft={ participantId: participantInput.value || '', seminar: seminarSelect.value || '', presentations: [] };
-  const seminar = seminarSelect.value;
-  if(seminar && presentationsBySeminar[seminar]){
-    presentationsBySeminar[seminar].forEach((_,i)=>{
-      const score=document.getElementById(`pres${i+1}`)?.value || '';
-      const comment=document.getElementById(`comment${i+1}`)?.value || '';
-      const noComment=document.getElementById(`nocmt${i+1}`)?.checked || false;
-      draft.presentations.push({score, comment, noComment});
+  const draft = { participant: participantInput.value, seminar: seminarSelect.value, presentations: [] };
+  const list = presentationsBySeminar[seminarSelect.value] || [];
+  list.forEach((_, i)=>{
+    draft.presentations.push({
+      score: document.getElementById(`pres${i+1}`)?.value || '',
+      comment: document.getElementById(`comment${i+1}`)?.value || ''
     });
-  }
-  draft.savedAt=new Date().toISOString();
+  });
   return draft;
 }
-function saveDraft(){ try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(gatherDraft())); }catch(e){ console.error(e); } }
-const saveDraftDebounced = debounce(saveDraft,300);
-function loadDraftIntoDOM(){
+
+function saveDraft(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(gatherDraft())); }
+const saveDraftDebounced = debounce(saveDraft, 300);
+
+function loadDraft(){
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if(!raw) return;
   try{
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if(!raw) return;
     const data = JSON.parse(raw);
-    if(data.participantId) participantInput.value = data.participantId;
+    if(data.participant) participantInput.value = data.participant;
     if(data.seminar && !seminarSelect.value) seminarSelect.value = data.seminar;
-    if(data.presentations && data.presentations.length){
-      data.presentations.forEach((p,i)=>{
-        const scoreEl = document.getElementById(`pres${i+1}`);
-        const cmtEl = document.getElementById(`comment${i+1}`);
-        const chkEl = document.getElementById(`nocmt${i+1}`);
-        if(scoreEl) scoreEl.value = p.score || '';
-        if(chkEl) chkEl.checked = p.noComment || false;
-        if(cmtEl){ cmtEl.value = p.comment || ''; cmtEl.disabled = chkEl?.checked || false; }
-      });
-    }
+    const list = presentationsBySeminar[data.seminar] || [];
+    list.forEach((_, i)=>{
+      const scoreEl = document.getElementById(`pres${i+1}`);
+      const commentEl = document.getElementById(`comment${i+1}`);
+      if(scoreEl) scoreEl.value = data.presentations[i]?.score || '';
+      if(commentEl) commentEl.value = data.presentations[i]?.comment || '';
+    });
   }catch(e){ console.error(e); }
 }
 
-// ------------------- Hook up events -------------------
-seminarSelect.addEventListener('change', ()=>{ renderPresentations(seminarSelect.value); saveDraftDebounced(); });
 document.addEventListener('input', saveDraftDebounced);
+seminarSelect.addEventListener('change', ()=>{ renderPresentations(seminarSelect.value); saveDraftDebounced(); });
 participantInput.addEventListener('input', saveDraftDebounced);
 
 // ------------------- Submit handling -------------------
 form.addEventListener('submit', async (e)=>{
   e.preventDefault();
   showMessage('');
-  submitBtn.disabled = true;
+  const participant = participantInput.value.trim();
+  const seminar = seminarSelect.value;
+  if(!participant || !seminar){ showMessage('Please fill in all required fields.', 'error'); return; }
+
+  const list = presentationsBySeminar[seminar];
+  const evaluations=[];
+  for(let i=0;i<list.length;i++){
+    const score = document.getElementById(`pres${i+1}`)?.value;
+    const comment = document.getElementById(`comment${i+1}`)?.value.trim() || '';
+    if(!score){ showMessage('Please fill in a score for each presentation.', 'error'); return; }
+    evaluations.push({ name:list[i], score:parseInt(score,10), comment });
+  }
+
   try{
-    const participantIdRaw = participantInput.value.trim();
-    const seminar = seminarSelect.value;
-    if(!participantIdRaw || !seminar){ showMessage('Please fill in all required fields.', 'error'); submitBtn.disabled=false; return; }
-    const list = presentationsBySeminar[seminar];
-    const evaluations=[];
-    for(let i=0;i<list.length;i++){
-      const scoreEl = document.getElementById(`pres${i+1}`);
-      const chkEl = document.getElementById(`nocmt${i+1}`);
-      const cmtEl = document.getElementById(`comment${i+1}`);
-      const score=scoreEl?.value;
-      const noComment=chkEl?.checked||false;
-      const comment=noComment?'':(cmtEl?.value.trim()||'');
-      if(!score){ showMessage('Please fill in a score for each presentation.', 'error'); submitBtn.disabled=false; return; }
-      evaluations.push({ name:list[i], score:parseInt(score,10), comment });
+    if(db){
+      const safeId = safeIdForDoc(`${participant}_${seminar}`);
+      const docRef = db.collection('votes').doc(safeId);
+      const existing = await docRef.get();
+      if(existing && existing.exists){ showMessage('You have already submitted an evaluation.', 'error'); return; }
+      await docRef.set({ participant, seminar, presentations:evaluations, timestamp:firebase.firestore.FieldValue.serverTimestamp() });
     }
-    const safeId = safeIdForDoc(`${participantIdRaw}_${seminar}`);
-    const docRef = db ? db.collection('votes').doc(safeId) : null;
-    if(!docRef){ showMessage('Backend not available. Draft saved locally.', 'error'); saveDraft(); submitBtn.disabled=false; return; }
-    const existing = await docRef.get();
-    if(existing && existing.exists){ showMessage('You have already submitted an evaluation.', 'error'); submitBtn.disabled=false; return; }
-    await docRef.set({ participantId: participantIdRaw, seminar, presentations:evaluations, timestamp:firebase.firestore.FieldValue.serverTimestamp() });
-
-    /* 🔥 ÚPRAVA: ZOBRAZENÍ TVÉHO TEXTU */
-    showMessage('Thank you for your evaluation!!!','success');
-
+    showMessage('Thank you for your evaluation!', 'success');
     localStorage.removeItem(DRAFT_KEY);
-    form.reset(); presDiv.innerHTML='';
-  }catch(err){ console.error(err); showMessage('An error occurred. Draft saved locally.','error'); saveDraft(); }
-  submitBtn.disabled=false;
+    form.reset();
+    presDiv.innerHTML='';
+  }catch(err){ console.error(err); showMessage('Error submitting evaluation.', 'error'); saveDraft(); }
 });
 </script>
 
-<footer>
-  <img src="logo.jpg" alt="Faculty Logo">
-
+<footer style="text-align:center; padding:20px 15px; font-size:16px; background:#fff; border-top:1px solid #ccc;">
+  <img src="logo.jpg" alt="Faculty Logo" style="height:60px; display:block; margin:0 auto 10px auto;">
   <p>© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
   <p>Hlavova 2030/8, Prague 2, 128 00</p>
   <p>Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
-
   <p>
-    <a href="https://orgchem.natur.cuni.cz/" 
-       target="_blank" 
-       style="color:#000; text-decoration:none;">
-       https://orgchem.natur.cuni.cz
+    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color:#000; text-decoration:none;">
+      https://orgchem.natur.cuni.cz
     </a>
   </p>
 </footer>
+
 
 </body>
 </html>
