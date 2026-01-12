@@ -33,10 +33,7 @@ header {
   margin-bottom: 30px;
 }
 
-header img {
-  height: 120px;
-  margin-bottom: 10px;
-}
+header img { height: 120px; margin-bottom: 10px; }
 
 header h1 {
   margin: 0;
@@ -61,9 +58,7 @@ header h1 {
   font-size: 15px;
 }
 
-.nav-btn:hover {
-  background: #000;
-}
+.nav-btn:hover { background: #000; }
 
 #seminarSelectContainer {
   margin-bottom: 30px;
@@ -71,23 +66,35 @@ header h1 {
 }
 
 .seminar {
-  margin-bottom: 30px;
-  padding: 15px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 22px 28px;
+  max-width: 420px;
+  margin: 0 auto 40px auto;
   text-align: center;
-  min-width: 300px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.seminar h2 { margin-top: 0; }
+
+.year {
+  font-style: italic;
+  color: #555;
+  margin-bottom: 12px;
 }
 
 .winner {
+  margin-top: 14px;
   font-weight: bold;
-  color: green;
+  color: #2e7d32;
 }
 
 .votes {
   font-weight: bold;
-  color: darkorange;
-  margin-bottom: 15px;
+  color: #f57c00;
+  margin-bottom: 18px;
+  text-align: center;
 }
 
 footer {
@@ -104,11 +111,13 @@ footer {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-bottom: 50px;
 }
 
 .podium-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: bold;
+  margin-bottom: 15px;
 }
 
 .podium {
@@ -116,7 +125,6 @@ footer {
   justify-content: center;
   align-items: flex-end;
   gap: 30px;
-  margin-top: 25px;
 }
 
 .block {
@@ -149,13 +157,13 @@ footer {
   <strong>Select seminar:</strong><br><br>
   <select id="seminarSelect">
     <option value="">-- choose seminar --</option>
-    <option value="Seminar 1">Seminar 1 (4th year) – 14th November 2025</option>
-    <option value="Seminar 2">Seminar 2 (4th year) – 12th December 2025</option>
-    <option value="Seminar 3">Seminar 3 (2nd year) – 9th January 2026</option>
-    <option value="Seminar 4">Seminar 4 (2nd year) – 13th February 2026</option>
-    <option value="Seminar 5">Seminar 5 (2nd year) – 10th April 2026</option>
-    <option value="Seminar 6">Seminar 6 (2nd year) – 15th May 2026</option>
-    <option value="Grand">Overall winners (Top 3)</option>
+    <option value="Seminar 1">Seminar 1 (4th year) – 14 Nov 2025</option>
+    <option value="Seminar 2">Seminar 2 (4th year) – 12 Dec 2025</option>
+    <option value="Seminar 3">Seminar 3 (2nd year) – 9 Jan 2026</option>
+    <option value="Seminar 4">Seminar 4 (2nd year) – 13 Feb 2026</option>
+    <option value="Seminar 5">Seminar 5 (2nd year) – 10 Apr 2026</option>
+    <option value="Seminar 6">Seminar 6 (2nd year) – 15 May 2026</option>
+    <option value="Grand">Overall winners</option>
   </select>
 </div>
 
@@ -174,7 +182,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* PRESENTATIONS */
 const presentationsBySeminar = {
   "Seminar 1": ["Marko Boskovic", "Büşra Buse Tütüncü", "Samanta Rožánková", "Yu-Wei Tu"],
   "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Pratibha Choudhari"],
@@ -184,7 +191,6 @@ const presentationsBySeminar = {
   "Seminar 6": ["Najam Ul Sahar", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
 };
 
-/* YEAR LABELS */
 const seminarYear = {
   "Seminar 1": "4th year students",
   "Seminar 2": "4th year students",
@@ -210,6 +216,11 @@ seminarSelect.addEventListener("change", async () => {
   const snapshot = await db.collection("votes").where("seminar", "==", selected).get();
   const pres = presentationsBySeminar[selected];
 
+  const votesInfo = document.createElement("div");
+  votesInfo.className = "votes";
+  votesInfo.textContent = `${snapshot.size} participants of the seminar submitted their votes`;
+  resultsDiv.appendChild(votesInfo);
+
   let totals = Array(pres.length).fill(0);
   snapshot.forEach(doc => {
     doc.data().presentations.forEach((p,i)=> totals[i] += p.score);
@@ -218,34 +229,68 @@ seminarSelect.addEventListener("change", async () => {
   const avg = totals.map(t => (t / snapshot.size).toFixed(2));
   const ranked = avg.map((s,i)=>({s:parseFloat(s),i})).sort((a,b)=>b.s-a.s);
 
-  let html = `
-    <div class="seminar">
-      <h2>${selected}</h2>
-      <p style="font-style: italic;">${seminarYear[selected]}</p>
-  `;
+  let html = `<div class="seminar">
+    <h2>${selected}</h2>
+    <div class="year">${seminarYear[selected]}</div>`;
 
   ranked.forEach((r,pos)=>{
     html += `<p>${pos+1}. ${pres[r.i]} – ${r.s} points</p>`;
   });
 
-  html += `<p class="winner">Winner: ${pres[ranked[0].i]}</p></div>`;
-  resultsDiv.innerHTML = html;
+  html += `<div class="winner">Winner: ${pres[ranked[0].i]}</div></div>`;
+  resultsDiv.innerHTML += html;
 
   confetti({ particleCount: 120, spread: 120 });
 });
 
 async function showGrandWinners() {
-  resultsDiv.innerHTML = `<div class="podium-title">Overall Winners – Top 3</div>`;
+  resultsDiv.innerHTML = "";
+
+  const groups = {
+    "4th year students": ["Seminar 1", "Seminar 2"],
+    "2nd year students": ["Seminar 3", "Seminar 4", "Seminar 5", "Seminar 6"]
+  };
+
+  for (const group in groups) {
+    let all = [];
+
+    for (const sem of groups[group]) {
+      const names = presentationsBySeminar[sem];
+      const snap = await db.collection("votes").where("seminar","==",sem).get();
+      if (snap.empty) continue;
+
+      let totals = Array(names.length).fill(0);
+      snap.forEach(doc=>{
+        doc.data().presentations.forEach((p,i)=>totals[i]+=p.score);
+      });
+
+      totals.map(t=>t/snap.size).forEach((score,i)=>{
+        all.push({name:names[i], score});
+      });
+    }
+
+    const top3 = all.sort((a,b)=>b.score-a.score).slice(0,3);
+
+    resultsDiv.innerHTML += `
+      <div class="podium-wrapper">
+        <div class="podium-title">${group} – Overall Top 3</div>
+        <div class="podium">
+          <div class="block second">2nd<br>${top3[1].name}<br>${top3[1].score.toFixed(2)}</div>
+          <div class="block first">1st<br>${top3[0].name}<br>${top3[0].score.toFixed(2)}</div>
+          <div class="block third">3rd<br>${top3[2].name}<br>${top3[2].score.toFixed(2)}</div>
+        </div>
+      </div>`;
+  }
+
+  confetti({ particleCount: 200, spread: 150 });
 }
 </script>
 
 <footer>
   <img src="logo.jpg" alt="Faculty Logo" style="height: 55px; margin-bottom: 10px;">
-  <p style="margin: 6px 0;">© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
-  <p style="margin: 6px 0;">Hlavova 2030/8, Prague 2, 128 00 | Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
-  <p style="margin: 6px 0;">
-    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">https://orgchem.natur.cuni.cz</a>
-  </p>
+  <p>© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
+  <p>Hlavova 2030/8, Prague 2, 128 00 | jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
+  <a href="https://orgchem.natur.cuni.cz/" target="_blank">https://orgchem.natur.cuni.cz</a>
 </footer>
 
 </body>
