@@ -114,6 +114,12 @@ input, select, button {
   color: #444; 
   font-size:20px; 
 }
+
+/* nový styl pro zablokované hodnoty */
+select option.disabled-option {
+  color: #aaa;
+  background-color: #f0f0f0;
+}
 </style>
 </head>
 
@@ -183,7 +189,37 @@ function renderStudents(){
     `;
     presDiv.appendChild(block);
   });
+
+  const selects = Array.from(document.querySelectorAll('select'));
+
+  function updateOptions(changedSelect){
+    const chosenValues = selects
+      .filter(s => s.value && s !== changedSelect)
+      .map(s => s.value);
+
+    selects.forEach(s => {
+      Array.from(s.options).forEach(opt => {
+        if(opt.value === "") {
+          opt.disabled = false;
+          opt.classList.remove('disabled-option');
+          return;
+        }
+        if(chosenValues.includes(opt.value) && s !== changedSelect){
+          opt.disabled = true;
+          opt.classList.add('disabled-option');
+        } else {
+          opt.disabled = false;
+          opt.classList.remove('disabled-option');
+        }
+      });
+    });
+  }
+
+  selects.forEach(s => {
+    s.addEventListener('change', () => updateOptions(s));
+  });
 }
+
 renderStudents();
 
 function showMessage(text, type){
@@ -216,7 +252,8 @@ form.addEventListener('submit', async (e)=>{
     ranks.push(parseInt(value));
   }
 
-  if(new Set(ranks).size !== students.length){
+  const uniqueRanks = new Set(ranks);
+  if(uniqueRanks.size !== students.length){
     showMessage("Each rank can be used only once.", "error");
     return;
   }
@@ -246,6 +283,13 @@ form.addEventListener('submit', async (e)=>{
     showMessage("Thank you for your evaluation!", "success");
     form.reset();
 
+    // reset selecty, aby byly odblokované
+    const selects = Array.from(document.querySelectorAll('select'));
+    selects.forEach(s => Array.from(s.options).forEach(opt => {
+      opt.disabled = false;
+      opt.classList.remove('disabled-option');
+    }));
+
   }catch(err){
     console.error(err);
     showMessage("Error submitting evaluation.", "error");
@@ -267,3 +311,4 @@ form.addEventListener('submit', async (e)=>{
 
 </body>
 </html>
+
