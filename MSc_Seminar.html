@@ -120,6 +120,13 @@ select option.disabled-option {
   color: #aaa;
   background-color: #f0f0f0;
 }
+
+/* vizuální styl pro vybranou hodnotu */
+select option.selected-option {
+  font-weight: bold;
+  color: #fff;
+  background-color: #4a90e2;
+}
 </style>
 </head>
 
@@ -199,21 +206,22 @@ function renderStudents(){
 
     selects.forEach(s => {
       Array.from(s.options).forEach(opt => {
-        if(opt.value === "") {
-          opt.disabled = false;
-          opt.classList.remove('disabled-option');
-          return;
-        }
-        if(chosenValues.includes(opt.value) && s !== changedSelect){
+        // reset všech tříd
+        opt.classList.remove('disabled-option', 'selected-option');
+
+        if(opt.value === "") return;
+
+        if(opt.value === s.value){
+          opt.classList.add('selected-option'); // zvýrazní vybranou hodnotu
+        } else if(chosenValues.includes(opt.value) && s !== changedSelect){
           opt.disabled = true;
-          opt.classList.add('disabled-option');
+          opt.classList.add('disabled-option'); // vizuální blokování
         } else {
           opt.disabled = false;
-          opt.classList.remove('disabled-option');
         }
       });
 
-      // okamžitá kontrola: reset duplicitních výběrů
+      // okamžitá kontrola duplicitních hodnot
       if(s.value && chosenValues.includes(s.value)){
         s.value = "";
       }
@@ -288,11 +296,11 @@ form.addEventListener('submit', async (e)=>{
     showMessage("Thank you for your evaluation!", "success");
     form.reset();
 
-    // reset selectů po odeslání
+    // reset všech selectů
     const selects = Array.from(document.querySelectorAll('select'));
     selects.forEach(s => Array.from(s.options).forEach(opt => {
       opt.disabled = false;
-      opt.classList.remove('disabled-option');
+      opt.classList.remove('disabled-option', 'selected-option');
     }));
 
   }catch(err){
