@@ -115,7 +115,7 @@ input, select, button {
   font-size:20px; 
 }
 
-/* nový styl pro zablokované hodnoty */
+/* vizuální styl pro zablokované hodnoty */
 select option.disabled-option {
   color: #aaa;
   background-color: #f0f0f0;
@@ -212,6 +212,11 @@ function renderStudents(){
           opt.classList.remove('disabled-option');
         }
       });
+
+      // okamžitá kontrola: reset duplicitních výběrů
+      if(s.value && chosenValues.includes(s.value)){
+        s.value = "";
+      }
     });
   }
 
@@ -283,7 +288,7 @@ form.addEventListener('submit', async (e)=>{
     showMessage("Thank you for your evaluation!", "success");
     form.reset();
 
-    // reset selecty, aby byly odblokované
+    // reset selectů po odeslání
     const selects = Array.from(document.querySelectorAll('select'));
     selects.forEach(s => Array.from(s.options).forEach(opt => {
       opt.disabled = false;
@@ -311,4 +316,3 @@ form.addEventListener('submit', async (e)=>{
 
 </body>
 </html>
-
