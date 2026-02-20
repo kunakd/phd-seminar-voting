@@ -199,38 +199,31 @@ function renderStudents(){
 
   const selects = Array.from(document.querySelectorAll('select'));
 
-  function updateOptions(changedSelect){
+  function updateOptions(){
     const chosenValues = selects
-      .filter(s => s.value && s !== changedSelect)
+      .filter(s => s.value)
       .map(s => s.value);
 
     selects.forEach(s => {
       Array.from(s.options).forEach(opt => {
-        // reset všech tříd
+        // reset tříd
         opt.classList.remove('disabled-option', 'selected-option');
 
         if(opt.value === "") return;
 
         if(opt.value === s.value){
           opt.classList.add('selected-option'); // zvýrazní vybranou hodnotu
-        } else if(chosenValues.includes(opt.value) && s !== changedSelect){
+        } else if(chosenValues.includes(opt.value)){
           opt.disabled = true;
           opt.classList.add('disabled-option'); // vizuální blokování
         } else {
           opt.disabled = false;
         }
       });
-
-      // okamžitá kontrola duplicitních hodnot
-      if(s.value && chosenValues.includes(s.value)){
-        s.value = "";
-      }
     });
   }
 
-  selects.forEach(s => {
-    s.addEventListener('change', () => updateOptions(s));
-  });
+  selects.forEach(s => s.addEventListener('change', updateOptions));
 }
 
 renderStudents();
@@ -296,13 +289,12 @@ form.addEventListener('submit', async (e)=>{
     showMessage("Thank you for your evaluation!", "success");
     form.reset();
 
-    // reset všech selectů
+    // reset všech selectů po odeslání
     const selects = Array.from(document.querySelectorAll('select'));
     selects.forEach(s => Array.from(s.options).forEach(opt => {
       opt.disabled = false;
       opt.classList.remove('disabled-option', 'selected-option');
     }));
-
   }catch(err){
     console.error(err);
     showMessage("Error submitting evaluation.", "error");
