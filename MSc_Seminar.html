@@ -1,3 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PhD Seminar Voting</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+html, body {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  flex: 1;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+}
+header img { height: 120px; margin-bottom: 10px; }
+header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
+
+.navbar {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+.nav-btn {
+  padding: 10px 18px;
+  background: #4a4a4a;
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.nav-btn:hover { background: #000; }
+
+label { display:block; margin-top:15px; font-weight:bold; font-size:18px; }
+label .hint { font-weight: normal; }
+
+input, select, button {
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  border-radius:6px;
+  border:1px solid #ccc;
+  font-size:18px;
+}
+
+#submitBtn {
+  background-color: #39ff14;
+  color: #000;
+  font-weight: bold;
+  font-size: 18px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+#submitBtn:hover { background-color: #2cff0f; }
+
+.success { color: green; margin-top:20px; font-size:18px; text-align:center; }
+.error { color: red; margin-top:20px; font-size:18px; text-align:center; }
+
+.presentation-block { 
+  border: 1px solid #ccc; 
+  border-radius: 10px; 
+  padding: 20px; 
+  margin-top: 20px; 
+  background: #fafafa; 
+  box-shadow: 1px 1px 5px rgba(0,0,0,0.05); 
+  font-size:18px; 
+}
+.presentation-block h3 { margin-top: 0; color: #444; font-size:20px; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <img src="logo.jpg" alt="Department Logo">
+  <h1>MSc Seminar Voting</h1>
+
+  <div class="navbar">
+    <a href="https://kunakd.github.io/phd-seminar-voting/results.html" class="nav-btn">Results</a>
+    <a href="https://kunakd.github.io/phd-seminar-voting/feedback.html" class="nav-btn">Feedback</a>
+  </div>
+</header>
+
 <form id="voteForm">
   <label for="participantId">
     <strong>Your Email</strong> <span class="hint">(…@natur.cuni.cz or …@uochb.cas.cz)</span>
@@ -9,23 +117,33 @@
   <button type="submit" id="submitBtn">Submit voting</button>
 </form>
 
-<div id="message" aria-live="polite"></div>
+<div id="message"></div>
 
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
+  authDomain: "phd-seminar-voting.firebaseapp.com",
+  projectId: "phd-seminar-voting",
+  storageBucket: "phd-seminar-voting.firebasestorage.app",
+  messagingSenderId: "1042633812969",
+  appId: "1:1042633812969:web:7fa70745a53338ec5ab978"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 const students = [
-  { name: "Student 1", title: "Presentation title 1" },
-  { name: "Student 2", title: "Presentation title 2" },
-  { name: "Student 3", title: "Presentation title 3" },
-  { name: "Student 4", title: "Presentation title 4" },
-  { name: "Student 5", title: "Presentation title 5" }
-];
+  { name: "Aleksandr Vasilenko", title: "Presentation title 1" },
+  { name: "Martin Vacek", title: "Presentation title 2" },
+  { name: "Daniel Čermák", title: "Presentation title 3" },
+  { name: "Palina Kudrejka", title: "Presentation title 4" },
+  ];
 
 const presDiv = document.getElementById("presentations");
 const form = document.getElementById("voteForm");
 const participantInput = document.getElementById("participantId");
 
 function renderStudents(){
-  presDiv.innerHTML = "";
   students.forEach((s,i)=>{
     const block = document.createElement('div');
     block.className = 'presentation-block';
@@ -41,7 +159,6 @@ function renderStudents(){
     presDiv.appendChild(block);
   });
 }
-
 renderStudents();
 
 function showMessage(text, type){
@@ -74,8 +191,7 @@ form.addEventListener('submit', async (e)=>{
     ranks.push(parseInt(value));
   }
 
-  const unique = new Set(ranks);
-  if(unique.size !== students.length){
+  if(new Set(ranks).size !== students.length){
     showMessage("Each rank can be used only once.", "error");
     return;
   }
@@ -90,6 +206,7 @@ form.addEventListener('submit', async (e)=>{
     const safeId = safeIdForDoc(participant);
     const docRef = db.collection("msc_votes").doc(safeId);
     const existing = await docRef.get();
+
     if(existing.exists){
       showMessage("You have already voted.", "error");
       return;
@@ -110,3 +227,18 @@ form.addEventListener('submit', async (e)=>{
   }
 });
 </script>
+
+<footer style="text-align:center; padding:20px 15px; font-size:16px; background:#fff; border-top:1px solid #ccc;">
+  <img src="logo.jpg" alt="Faculty Logo" style="height:60px; display:block; margin:0 auto 10px auto;">
+  <p>© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
+  <p>Hlavova 2030/8, Prague 2, 128 00</p>
+  <p>Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
+  <p>
+    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color:#000; text-decoration:none;">
+      https://orgchem.natur.cuni.cz
+    </a>
+  </p>
+</footer>
+
+</body>
+</html>
