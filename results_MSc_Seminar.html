@@ -149,8 +149,7 @@ footer {
   <h1>PhD Seminar Evaluation Results</h1>
 
   <div class="navbar">
-    <a href="https://kunakd.github.io/phd-seminar-voting/index.html" class="nav-btn">Vote</a>
-    <a href="https://kunakd.github.io/phd-seminar-voting/feedback.html" class="nav-btn">Feedback</a>
+    <a href="https://kunakd.github.io/phd-seminar-voting/MSc_Seminar.html" class="nav-btn">Vote</a>
   </div>
 </header>
 
@@ -235,17 +234,17 @@ async function loadResults(){
   });
 
   // Seřadit podle nejlepšího průměru
-const top3 = [...studentsWithAvg].sort((a,b)=>a.avgRank - b.avgRank).slice(0,3);
+  const top3 = [...studentsWithAvg].sort((a,b)=>a.avgRank - b.avgRank).slice(0,3);
 
-podiumDiv.innerHTML = '';
-const classes = ['first','second','third'];
+  podiumDiv.innerHTML = '';
+  const classes = ['first','second','third'];
 
-top3.forEach((s,i)=>{
-  const block = document.createElement('div');
-  block.className = `block ${classes[i]}`;
-  block.innerHTML = `<div>${s.name}</div><div class="block-name">${s.avgRank.toFixed(2)}</div>`;
-  podiumDiv.appendChild(block);
-});
+  top3.forEach((s,i)=>{
+    const block = document.createElement('div');
+    block.className = `block ${classes[i]}`;
+    block.innerHTML = `<div>${s.name}</div><div class="block-name">${s.avgRank.toFixed(2)}</div>`;
+    podiumDiv.appendChild(block);
+  });
  
   podiumWrapper.style.display = 'flex';
 
@@ -271,5 +270,3 @@ loadResults();
 
 </body>
 </html>
-
-
