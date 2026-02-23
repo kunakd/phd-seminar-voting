@@ -162,14 +162,13 @@ footer {
     <tr>
       <th>Student</th>
       <th>Title</th>
-      <th>Median Rank</th>
+      <th>Borda Score</th>
       <th>Votes for each rank</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
-<!-- PODIUM -->
 <div class="podium-wrapper" id="podiumWrapper" style="display:none;">
   <div class="podium-title">Top 3 Students</div>
   <div class="podium" id="podium"></div>
@@ -194,26 +193,8 @@ const summaryDiv = document.getElementById("summary");
 const podiumWrapper = document.getElementById("podiumWrapper");
 const podiumDiv = document.getElementById("podium");
 
-function median(values) {
-  if(values.length === 0) return 0;
-  values.sort((a,b)=>a-b);
-  const half = Math.floor(values.length / 2);
-  if(values.length % 2) return values[half];
-  return (values[half - 1] + values[half]) / 2;
-}
-
-// Pro remízu: porovnat podle počtu lepších hlasů
-function compareByMedianAndVotes(a, b) {
-  if(a.medRank !== b.medRank) return a.medRank - b.medRank;
-
-  // počty hlasů od nejlepší pozice k horší
-  for(let i=0; i<a.rankCounts.length; i++){
-    if(a.rankCounts[i] !== b.rankCounts[i]) return b.rankCounts[i] - a.rankCounts[i];
-  }
-  return 0;
-}
-
 async function loadResults(){
+
   const snapshot = await db.collection("msc_votes").get();
   const votes = snapshot.docs.map(doc => doc.data());
 
@@ -225,35 +206,56 @@ async function loadResults(){
     return;
   }
 
-  const students = votes[0].votes.map(v => ({name:v.name, title:v.title}));
+  const students = votes[0].votes.map(v => ({
+    name: v.name,
+    title: v.title
+  }));
 
-  const studentsWithMedian = students.map((s, idx) => {
-    const rankCounts = Array(students.length).fill(0);
-    const allRanks = [];
+  const n = students.length;
+
+  const studentsWithScore = students.map((s, idx) => {
+
+    const rankCounts = Array(n).fill(0);
+    let bordaScore = 0;
+
     votes.forEach(vote => {
       const r = vote.votes[idx].rank;
-      allRanks.push(r);
       rankCounts[r-1] += 1;
+      bordaScore += (n - r + 1);
     });
-    const medRank = median(allRanks);
-    return { ...s, medRank, rankCounts };
+
+    return { ...s, bordaScore, rankCounts };
   });
 
-  // Naplnit tabulku
-  studentsWithMedian.forEach(s => {
-    const countsStr = s.rankCounts.map((c,i)=>`${i+1}: ${c}`).join(", ");
+  const sortedStudents = studentsWithScore.sort((a,b)=>{
+
+    if(a.bordaScore !== b.bordaScore)
+      return b.bordaScore - a.bordaScore;
+
+    return b.rankCounts[0] - a.rankCounts[0];
+  });
+
+  tableBody.innerHTML = '';
+
+  sortedStudents.forEach(s => {
+
+    const countsStr = s.rankCounts
+      .map((c,i)=>`${i+1}: ${c}`)
+      .join(", ");
+
     const row = document.createElement("tr");
+
     row.innerHTML = `
       <td>${s.name}</td>
       <td>${s.title}</td>
-      <td>${s.medRank.toFixed(2)}</td>
+      <td>${s.bordaScore}</td>
       <td>${countsStr}</td>
     `;
+
     tableBody.appendChild(row);
   });
 
-  // Seřadit podle mediánu a při remíze podle více lepších hlasů
-  const top3 = [...studentsWithMedian].sort(compareByMedianAndVotes).slice(0,3);
+  const top3 = sortedStudents.slice(0,3);
 
   podiumDiv.innerHTML = '';
   const classes = ['first','second','third'];
@@ -261,13 +263,15 @@ async function loadResults(){
   top3.forEach((s,i)=>{
     const block = document.createElement('div');
     block.className = `block ${classes[i]}`;
-    block.innerHTML = `<div>${s.name}</div><div class="block-name">${s.medRank.toFixed(2)}</div>`;
+    block.innerHTML = `
+      <div>${s.name}</div>
+      <div class="block-name">${s.bordaScore} pts</div>
+    `;
     podiumDiv.appendChild(block);
   });
 
   podiumWrapper.style.display = 'flex';
 
-  // Konfety pro vítěze
   confetti({
     particleCount: 150,
     spread: 70,
@@ -289,5 +293,7 @@ loadResults();
 
 </body>
 </html>
+
+
 
 
