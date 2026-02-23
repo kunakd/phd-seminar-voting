@@ -235,17 +235,18 @@ async function loadResults(){
   });
 
   // Seřadit podle nejlepšího průměru
-  const top3 = [...studentsWithAvg].sort((a,b)=>a.avgRank - b.avgRank).slice(0,3);
+const top3 = [...studentsWithAvg].sort((a,b)=>a.avgRank - b.avgRank).slice(0,3);
 
-  podiumDiv.innerHTML = '';
-  const classes = ['second','first','third']; // order: left, middle, right
-  top3.forEach((s,i)=>{
-    const block = document.createElement('div');
-    block.className = `block ${classes[i]}`;
-    block.innerHTML = `<div>${s.name}</div><div class="block-name">${s.avgRank.toFixed(2)}</div>`;
-    podiumDiv.appendChild(block);
-  });
+podiumDiv.innerHTML = '';
+const classes = ['first','second','third'];
 
+top3.forEach((s,i)=>{
+  const block = document.createElement('div');
+  block.className = `block ${classes[i]}`;
+  block.innerHTML = `<div>${s.name}</div><div class="block-name">${s.avgRank.toFixed(2)}</div>`;
+  podiumDiv.appendChild(block);
+});
+ 
   podiumWrapper.style.display = 'flex';
 
   // Konfety pro vítěze
@@ -270,4 +271,5 @@ loadResults();
 
 </body>
 </html>
+
 
