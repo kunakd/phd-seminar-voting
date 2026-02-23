@@ -138,8 +138,7 @@ select option.selected-option {
   <h2 class="subtitle">MSc Students Presentations</h2>
 
   <div class="navbar">
-    <a href="https://kunakd.github.io/phd-seminar-voting/results.html" class="nav-btn">Results</a>
-    <a href="https://kunakd.github.io/phd-seminar-voting/feedback.html" class="nav-btn">Feedback</a>
+    <a href="https://kunakd.github.io/phd-seminar-voting/results_MSc_Seminar.html" class="nav-btn">Results</a>
   </div>
 </header>
 
@@ -207,16 +206,15 @@ function renderStudents(){
 
     selects.forEach(s => {
       Array.from(s.options).forEach(opt => {
-        // reset tříd
         opt.classList.remove('disabled-option', 'selected-option');
 
         if(opt.value === "") return;
 
         if(opt.value === s.value){
-          opt.classList.add('selected-option'); // zvýrazní vybranou hodnotu
+          opt.classList.add('selected-option'); 
         } else if(chosenValues.includes(opt.value)){
           opt.disabled = true;
-          opt.classList.add('disabled-option'); // vizuální blokování
+          opt.classList.add('disabled-option'); 
         } else {
           opt.disabled = false;
         }
@@ -290,7 +288,6 @@ form.addEventListener('submit', async (e)=>{
     showMessage("Thank you for your evaluation!", "success");
     form.reset();
 
-    // reset všech selectů po odeslání
     const selects = Array.from(document.querySelectorAll('select'));
     selects.forEach(s => Array.from(s.options).forEach(opt => {
       opt.disabled = false;
@@ -317,5 +314,3 @@ form.addEventListener('submit', async (e)=>{
 
 </body>
 </html>
-
-
