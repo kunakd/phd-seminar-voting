@@ -198,9 +198,19 @@ function median(values) {
   if(values.length === 0) return 0;
   values.sort((a,b)=>a-b);
   const half = Math.floor(values.length / 2);
-  if(values.length % 2)
-    return values[half];
+  if(values.length % 2) return values[half];
   return (values[half - 1] + values[half]) / 2;
+}
+
+// Pro remízu: porovnat podle počtu lepších hlasů
+function compareByMedianAndVotes(a, b) {
+  if(a.medRank !== b.medRank) return a.medRank - b.medRank;
+
+  // počty hlasů od nejlepší pozice k horší
+  for(let i=0; i<a.rankCounts.length; i++){
+    if(a.rankCounts[i] !== b.rankCounts[i]) return b.rankCounts[i] - a.rankCounts[i];
+  }
+  return 0;
 }
 
 async function loadResults(){
@@ -242,8 +252,8 @@ async function loadResults(){
     tableBody.appendChild(row);
   });
 
-  // Seřadit podle nejlepšího mediánu
-  const top3 = [...studentsWithMedian].sort((a,b)=>a.medRank - b.medRank).slice(0,3);
+  // Seřadit podle mediánu a při remíze podle více lepších hlasů
+  const top3 = [...studentsWithMedian].sort(compareByMedianAndVotes).slice(0,3);
 
   podiumDiv.innerHTML = '';
   const classes = ['first','second','third'];
@@ -254,7 +264,7 @@ async function loadResults(){
     block.innerHTML = `<div>${s.name}</div><div class="block-name">${s.medRank.toFixed(2)}</div>`;
     podiumDiv.appendChild(block);
   });
- 
+
   podiumWrapper.style.display = 'flex';
 
   // Konfety pro vítěze
@@ -279,3 +289,5 @@ loadResults();
 
 </body>
 </html>
+
+
