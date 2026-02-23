@@ -162,7 +162,7 @@ footer {
     <tr>
       <th>Student</th>
       <th>Title</th>
-      <th>Average Rank</th>
+      <th>Median Rank</th>
       <th>Votes for each rank</th>
     </tr>
   </thead>
@@ -194,6 +194,15 @@ const summaryDiv = document.getElementById("summary");
 const podiumWrapper = document.getElementById("podiumWrapper");
 const podiumDiv = document.getElementById("podium");
 
+function median(values) {
+  if(values.length === 0) return 0;
+  values.sort((a,b)=>a-b);
+  const half = Math.floor(values.length / 2);
+  if(values.length % 2)
+    return values[half];
+  return (values[half - 1] + values[half]) / 2;
+}
+
 async function loadResults(){
   const snapshot = await db.collection("msc_votes").get();
   const votes = snapshot.docs.map(doc => doc.data());
@@ -208,33 +217,33 @@ async function loadResults(){
 
   const students = votes[0].votes.map(v => ({name:v.name, title:v.title}));
 
-  const studentsWithAvg = students.map((s, idx) => {
+  const studentsWithMedian = students.map((s, idx) => {
     const rankCounts = Array(students.length).fill(0);
-    let sumRanks = 0;
+    const allRanks = [];
     votes.forEach(vote => {
       const r = vote.votes[idx].rank;
-      sumRanks += r;
+      allRanks.push(r);
       rankCounts[r-1] += 1;
     });
-    const avgRank = sumRanks / numRespondents;
-    return { ...s, avgRank, rankCounts };
+    const medRank = median(allRanks);
+    return { ...s, medRank, rankCounts };
   });
 
   // Naplnit tabulku
-  studentsWithAvg.forEach(s => {
+  studentsWithMedian.forEach(s => {
     const countsStr = s.rankCounts.map((c,i)=>`${i+1}: ${c}`).join(", ");
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${s.name}</td>
       <td>${s.title}</td>
-      <td>${s.avgRank.toFixed(2)}</td>
+      <td>${s.medRank.toFixed(2)}</td>
       <td>${countsStr}</td>
     `;
     tableBody.appendChild(row);
   });
 
-  // Seřadit podle nejlepšího průměru
-  const top3 = [...studentsWithAvg].sort((a,b)=>a.avgRank - b.avgRank).slice(0,3);
+  // Seřadit podle nejlepšího mediánu
+  const top3 = [...studentsWithMedian].sort((a,b)=>a.medRank - b.medRank).slice(0,3);
 
   podiumDiv.innerHTML = '';
   const classes = ['first','second','third'];
@@ -242,7 +251,7 @@ async function loadResults(){
   top3.forEach((s,i)=>{
     const block = document.createElement('div');
     block.className = `block ${classes[i]}`;
-    block.innerHTML = `<div>${s.name}</div><div class="block-name">${s.avgRank.toFixed(2)}</div>`;
+    block.innerHTML = `<div>${s.name}</div><div class="block-name">${s.medRank.toFixed(2)}</div>`;
     podiumDiv.appendChild(block);
   });
  
