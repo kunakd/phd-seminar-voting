@@ -3,145 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <title>PhD Seminar Evaluation</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="seminars-2026-2027.js"></script>
 <style>
-* { box-sizing: border-box; }
-
-html, body {
-  min-height: 100%;
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  font-size: 16px;
-  background-color: #fff;
-  display: flex;
-  flex-direction: column;
-}
-
-body {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 30px 20px;
-  flex: 1;
-}
-
-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 30px;
-}
+body { font-family: Arial; max-width: 800px; margin: 30px auto; padding: 20px; }
+header { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; }
 header img { height: 120px; margin-bottom: 10px; }
 header h1 { margin: 0; color: #333; font-size: 28px; text-align: center; }
-
-.navbar {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 20px;
-}
-.nav-btn {
-  padding: 10px 18px;
-  background: #4a4a4a;
-  color: white;
-  border-radius: 6px;
-  text-decoration: none;
-  font-size: 16px;
-  font-weight: bold;
-  transition: background 0.2s;
-}
-.nav-btn:hover { background: #000; }
-
-label { display:block; margin-top:15px; font-weight:bold; font-size:18px; }
-label .hint { font-weight: normal; } /* Odtučněná část v závorkách */
-
-input, select, textarea, button {
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  border-radius:6px;
-  border:1px solid #ccc;
-  font-size:18px;
-  box-sizing:border-box;
-}
-
-#submitBtn {
-  background-color: #39ff14;
-  color: #000;
-  font-weight: bold;
-  font-size: 18px;
-  margin-top: 12px;
-  cursor: pointer;
-}
-#submitBtn:hover { background-color: #2cff0f; }
-
+label { display:block; margin-top:15px; font-weight:bold; }
+input, select, textarea, button { width:100%; padding:8px; margin-top:5px; border-radius:4px; border:1px solid #ccc; box-sizing:border-box; }
 textarea { resize: vertical; transition: background-color 0.2s, color 0.2s; }
-
-.success { color: green; margin-top:20px; font-size:18px; text-align:center; }
-.error { color: red; margin-top:20px; font-size:18px; text-align:center; }
-
-.presentation-block { 
-  border: 1px solid #ccc; 
-  border-radius: 10px; 
-  padding: 20px; 
-  margin-top: 20px; 
-  background: #fafafa; 
-  box-shadow: 1px 1px 5px rgba(0,0,0,0.05); 
-  font-size:18px; 
-}
-.presentation-block h3 { margin-top: 0; color: #444; font-size:20px; }
-
-@media (max-width: 600px) {
-  body { padding: 15px; font-size:16px; }
-  header img { height: 90px; }
-  header h1 { font-size:24px; }
-  .navbar { flex-wrap: wrap; gap:10px; }
-  .nav-btn { font-size:16px; padding:12px 14px; }
-  input, select, textarea, button { font-size:16px; padding:12px; }
-  .presentation-block { padding:15px; font-size:16px; }
-}
+button { font-size:16px; margin-top:10px; cursor: pointer; }
+.success { color: green; margin-top:20px; }
+.error { color: red; margin-top:20px; }
+.presentation-block { border: 1px solid #ccc; border-radius: 8px; padding: 15px; margin-top: 20px; background: #fafafa; box-shadow: 1px 1px 5px rgba(0,0,0,0.05);}
+.presentation-block h3 { margin-top: 0; color: #444; }
+.checkbox-row { display: flex; align-items: center; margin-top: 5px; gap: 5px; }
+.checkbox-row input[type="checkbox"] { width: auto; cursor:pointer; }
+textarea:disabled { background-color: #eee; color: #666; }
 </style>
 </head>
 <body>
-
 <header>
   <img src="logo.jpg" alt="Department Logo">
   <h1>PhD Seminar Evaluation</h1>
-
-  <div class="navbar">
-    <a href="https://kunakd.github.io/phd-seminar-voting/results.html" class="nav-btn">Results</a>
-    <a href="https://kunakd.github.io/phd-seminar-voting/feedback.html" class="nav-btn">Feedback</a>
-  </div>
 </header>
 
-<form id="voteForm">
-  <label for="participantId">
-    <strong>Your Email</strong> <span class="hint">(…@natur.cuni.cz or …@uochb.cas.cz)</span>
-  </label>
-  <input type="email" id="participantId" required>
+<section id="authSection" style="border:1px solid #ddd; border-radius:8px; padding:20px; margin-bottom:25px;">
+  <h2>Sign in to vote</h2>
+  <p>Please use your verified institutional email address (@natur.cuni.cz or @uochb.cas.cz).</p>
+
+  <label for="authEmail">Email address</label>
+  <input type="email" id="authEmail" autocomplete="email" placeholder="name@natur.cuni.cz">
+
+  <label for="authPassword">Password</label>
+  <input type="password" id="authPassword" autocomplete="current-password">
+
+  <div style="margin-top:15px;">
+    <button type="button" id="signInBtn">Sign in</button>
+    <button type="button" id="registerBtn">Create account</button>
+    <button type="button" id="verifyEmailBtn">Resend verification email</button>
+    <button type="button" id="signOutBtn" style="display:none;">Sign out</button>
+  </div>
+
+  <p id="authStatus" role="status" aria-live="polite"></p>
+</section>
+
+<form id="voteForm" style="display:none;">
 
   <label for="seminar">Select seminar</label>
   <select id="seminar" required>
-    <option value="">--Select--</option>
-  </select>
+  <option value="">-- Select seminar --</option>
+  <option value="Seminar 1">Seminar 1 – 13 November 2026</option>
+  <option value="Seminar 2">Seminar 2 – 11 December 2026</option>
+  <option value="Seminar 3">Seminar 3 – 15 January 2027</option>
+  <option value="Seminar 4">Seminar 4 – 12 February 2027</option>
+  <option value="Seminar 6">Seminar 6 – 16 April 2027</option>
+  <option value="Seminar 7">Seminar 7 – 14 May 2027</option>
+</select>
 
   <div id="presentations"></div>
 
-  <button type="submit" id="submitBtn">Submit evaluation</button>
+  <button type="submit">Submit evaluation</button>
 </form>
 
-<div id="message" aria-live="polite"></div>
+<div id="message" role="status" aria-live="polite"></div>
+<p style="text-align:center"><a href="results.html">Evaluation results</a> · <a href="feedback.html">Presenter feedback</a></p>
 
 <script>
-const DRAFT_KEY = 'phd_eval_draft';
-function debounce(fn, wait=300){ let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), wait); }; }
-function safeIdForDoc(str){ if(!str) return ''; return String(str).trim().replace(/[.#$/\\[\\]]/g, '_'); }
-function showMessage(text, type){ const el = document.getElementById('message'); el.textContent = text || ''; el.className = type === 'error' ? 'error' : (type === 'success' ? 'success' : ''); }
-
 const firebaseConfig = {
   apiKey: "AIzaSyA3oSDoF5LC6pweqVinV2ykpJopQwFWulM",
   authDomain: "phd-seminar-voting.firebaseapp.com",
@@ -150,150 +81,36 @@ const firebaseConfig = {
   messagingSenderId: "1042633812969",
   appId: "1:1042633812969:web:7fa70745a53338ec5ab978"
 };
-let db = null;
-try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); } 
-catch (e) { console.error('Firebase init error', e); showMessage('Warning: backend failed to initialize. Drafts will still be saved locally.', 'error'); }
-
-const seminars = [
-  { name: "Seminar 1", date: "2025-11-14" },
-  { name: "Seminar 2", date: "2025-12-12" },
-  { name: "Seminar 3", date: "2026-01-09" },
-  { name: "Seminar 4", date: "2026-02-13" },
-  { name: "Seminar 5", date: "2026-04-10" },
-  { name: "Seminar 6", date: "2026-05-15" }
-];
-const presentationsBySeminar = {
-  "Seminar 1": ["Marko Boskovic", "Büşra Buse Tütüncü", "Samanta Rožánková", "Yu-Wei Tu"],
-  "Seminar 2": ["Bart Kieftenbelt", "Ema Bažíková", "Pratibha Choudhari"],
-  "Seminar 3": ["Anna-Marie Dušková", "Pallavi Halkarni", "Pipatpon Raksapon", "Ondřej Daněk"],
-  "Seminar 4": ["Filip Trajhan", "Alicia León Rodríguez", "Andrea Vopálenská"],
-  "Seminar 5": ["Ondřej Hladík", "Shubham Bhatt", "Lucie Černá", "Nidhi Sinha"],
-  "Seminar 6": ["Jakub Krištof", "Jyotpreet Kaur", "Sandip Baban Shinde", "Dominik Kunák"]
-};
-
-const seminarSelect = document.getElementById("seminar");
-const presDiv = document.getElementById("presentations");
-const form = document.getElementById("voteForm");
-const participantInput = document.getElementById("participantId");
-
-function updateSeminarDropdown(){
-  seminarSelect.innerHTML = '<option value="">--Select--</option>';
-  const now = new Date();
-  seminars.forEach(s=>{
-    const date = new Date(s.date);
-    const openDate = new Date(date); openDate.setDate(openDate.getDate()-1);
-    const opt = document.createElement('option');
-    opt.value = s.name;
-    opt.textContent = `${s.name} on ${date.toLocaleDateString('en-GB')}`;
-    if(now < openDate){ opt.disabled = true; opt.textContent += ' (not yet open)'; opt.title = `Voting opens ${openDate.toLocaleDateString('en-GB')}`; }
-    seminarSelect.appendChild(opt);
-  });
-}
-updateSeminarDropdown();
-
-function renderPresentations(seminar){
-  presDiv.innerHTML = '';
-  if(!seminar) return;
-  const list = presentationsBySeminar[seminar] || [];
-  list.forEach((name, i)=>{
-    const block = document.createElement('div');
-    block.className = 'presentation-block';
-    block.innerHTML = `
-      <h3>${name}</h3>
-      <label>Score (1 = worst, 10 = best)</label>
-      <select id="pres${i+1}" data-idx="${i}" required>
-        <option value="">--Select--</option>
-        ${Array.from({length:10},(_,x)=>`<option value="${x+1}">${x+1}</option>`).join('')}
-      </select>
-      <label>What should be improved?</label>
-      <textarea id="comment${i+1}" data-idx="${i}" rows="3"></textarea>
-    `;
-    presDiv.appendChild(block);
-  });
-  loadDraft();
-}
-
-// ------------------- Draft save/load -------------------
-function gatherDraft(){
-  const draft = { participant: participantInput.value, seminar: seminarSelect.value, presentations: [] };
-  const list = presentationsBySeminar[seminarSelect.value] || [];
-  list.forEach((_, i)=>{
-    draft.presentations.push({
-      score: document.getElementById(`pres${i+1}`)?.value || '',
-      comment: document.getElementById(`comment${i+1}`)?.value || ''
-    });
-  });
-  return draft;
-}
-
-function saveDraft(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(gatherDraft())); }
-const saveDraftDebounced = debounce(saveDraft, 300);
-
-function loadDraft(){
-  const raw = localStorage.getItem(DRAFT_KEY);
-  if(!raw) return;
-  try{
-    const data = JSON.parse(raw);
-    if(data.participant) participantInput.value = data.participant;
-    if(data.seminar && !seminarSelect.value) seminarSelect.value = data.seminar;
-    const list = presentationsBySeminar[data.seminar] || [];
-    list.forEach((_, i)=>{
-      const scoreEl = document.getElementById(`pres${i+1}`);
-      const commentEl = document.getElementById(`comment${i+1}`);
-      if(scoreEl) scoreEl.value = data.presentations[i]?.score || '';
-      if(commentEl) commentEl.value = data.presentations[i]?.comment || '';
-    });
-  }catch(e){ console.error(e); }
-}
-
-document.addEventListener('input', saveDraftDebounced);
-seminarSelect.addEventListener('change', ()=>{ renderPresentations(seminarSelect.value); saveDraftDebounced(); });
-participantInput.addEventListener('input', saveDraftDebounced);
-
-// ------------------- Submit handling -------------------
-form.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  showMessage('');
-  const participant = participantInput.value.trim();
-  const seminar = seminarSelect.value;
-  if(!participant || !seminar){ showMessage('Please fill in all required fields.', 'error'); return; }
-
-  const list = presentationsBySeminar[seminar];
-  const evaluations=[];
-  for(let i=0;i<list.length;i++){
-    const score = document.getElementById(`pres${i+1}`)?.value;
-    const comment = document.getElementById(`comment${i+1}`)?.value.trim() || '';
-    if(!score){ showMessage('Please fill in a score for each presentation.', 'error'); return; }
-    evaluations.push({ name:list[i], score:parseInt(score,10), comment });
-  }
-
-  try{
-    if(db){
-      const safeId = safeIdForDoc(`${participant}_${seminar}`);
-      const docRef = db.collection('votes').doc(safeId);
-      const existing = await docRef.get();
-      if(existing && existing.exists){ showMessage('You have already submitted an evaluation.', 'error'); return; }
-      await docRef.set({ participant, seminar, presentations:evaluations, timestamp:firebase.firestore.FieldValue.serverTimestamp() });
-    }
-    showMessage('Thank you for your evaluation!', 'success');
-    localStorage.removeItem(DRAFT_KEY);
-    form.reset();
-    presDiv.innerHTML='';
-  }catch(err){ console.error(err); showMessage('Error submitting evaluation.', 'error'); saveDraft(); }
-});
+firebase.initializeApp(firebaseConfig);
 </script>
-
-<footer style="text-align:center; padding:20px 15px; font-size:16px; background:#fff; border-top:1px solid #ccc;">
-  <img src="logo.jpg" alt="Faculty Logo" style="height:60px; display:block; margin:0 auto 10px auto;">
-  <p>© 2025 Department of Organic Chemistry, Faculty of Science, Charles University</p>
-  <p>Hlavova 2030/8, Prague 2, 128 00</p>
-  <p>Seminar Contacts: jiri.misek@natur.cuni.cz; dominik.kunak@natur.cuni.cz</p>
-  <p>
-    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color:#000; text-decoration:none;">
+<script src="voting-2026-2027.js"></script>
+<footer style="
+  background-color: #ffffff;
+  text-align: center;
+  padding: 25px 15px;
+  font-size: 14px;
+  color: #000;
+  border-top: 1px solid #ccc;
+  margin-top: 60px;
+">
+  <img src="logo.jpg" alt="PřF UK Logo" style="height: 55px; margin-bottom: 10px;">
+  <p style="margin: 6px 0;">
+    © 2026 Department of Organic Chemistry, Faculty of Science at Charles University in Prague
+  </p>
+  <p style="margin: 6px 0;">
+    Hlavova 2030/8, Praha 2, 128 00 &nbsp;|&nbsp;
+    Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz
+  </p>
+  <p style="margin: 6px 0;">
+    <a href="https://orgchem.natur.cuni.cz/" target="_blank" style="color: #000; text-decoration: none;">
       https://orgchem.natur.cuni.cz
     </a>
   </p>
 </footer>
 
+  
+<script src="auth-2026-2027.js"></script>
 </body>
 </html>
+
+
