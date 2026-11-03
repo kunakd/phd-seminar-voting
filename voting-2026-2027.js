@@ -1,663 +1,294 @@
-
 (function () {
   "use strict";
 
-  const db = firebase.firestore();
   const auth = firebase.auth();
-
+  const db = firebase.firestore();
   const form = document.getElementById("voteForm");
   const seminarSelect = document.getElementById("seminar");
-  const presDiv = document.getElementById("presentations");
+  const presentationsDiv = document.getElementById("presentations");
   const message = document.getElementById("message");
-  const submitButton = form.querySelector(
-    'button[type="submit"]'
-  );
+  const submitButton = form.querySelector('button[type="submit"]');
+  const status = document.getElementById("votingWindowStatus");
 
-  const allowedSeminars = [
-    "Seminar 1",
-    "Seminar 2",
-    "Seminar 3",
-    "Seminar 4",
-    "Seminar 6",
-    "Seminar 7"
-  ];
-
-  const votingWindows = {
-    "Seminar 1": [
-      "2026-11-12T23:00:00Z",
-      "2026-11-19T23:00:00Z"
-    ],
-    "Seminar 2": [
-      "2026-12-10T23:00:00Z",
-      "2026-12-17T23:00:00Z"
-    ],
-    "Seminar 3": [
-      "2027-01-14T23:00:00Z",
-      "2027-01-21T23:00:00Z"
-    ],
-    "Seminar 4": [
-      "2027-02-11T23:00:00Z",
-      "2027-02-18T23:00:00Z"
-    ],
-    "Seminar 6": [
-      "2027-04-15T22:00:00Z",
-      "2027-04-22T22:00:00Z"
-    ],
-    "Seminar 7": [
-      "2027-05-13T22:00:00Z",
-      "2027-05-20T22:00:00Z"
-    ]
+  const WINDOWS = {
+    "Seminar 1": ["2026-11-12T23:00:00Z", "2026-11-19T23:00:00Z"],
+    "Seminar 2": ["2026-12-10T23:00:00Z", "2026-12-17T23:00:00Z"],
+    "Seminar 3": ["2027-01-14T23:00:00Z", "2027-01-21T23:00:00Z"],
+    "Seminar 4": ["2027-02-11T23:00:00Z", "2027-02-18T23:00:00Z"],
+    "Seminar 6": ["2027-04-15T22:00:00Z", "2027-04-22T22:00:00Z"],
+    "Seminar 7": ["2027-05-13T22:00:00Z", "2027-05-20T22:00:00Z"]
   };
+  const PREFIX = "phd-vote-draft-v3";
+  const LEGACY_PREFIX = "phd-voting-draft-2026-2027";
+  const DRAFT_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+  const completed = new Set();
+  let renderedSeminar = "";
+  let renderedUid = "";
+  let busy = false;
+  let pending = false;
+  let storageWarning = false;
 
-  const DRAFT_PREFIX = "phd-voting-draft-2026-2027";
-  const MAX_DRAFT_AGE = 30 * 24 * 60 * 60 * 1000;
-
-  let submitting = false;
-  let currentUserUid = null;
-  let storageAvailable = true;
-
-  const completedInSession = new Set();
-
-  const status = document.createElement("p");
-  status.id = "votingWindowStatus";
-  status.setAttribute("role", "status");
-  status.setAttribute("aria-live", "polite");
-
-  submitButton.parentNode.insertBefore(
-    status,
-    submitButton
-  );
-
-  function isAuthorized(user) {
-    if (
-      !user ||
-      !user.emailVerified ||
-      typeof user.email !== "string"
-    ) {
-      return false;
-    }
-
-    const email = user.email.toLowerCase();
-
-    return (
-      email.endsWith("@natur.cuni.cz") ||
-      email.endsWith("@uochb.cas.cz")
-    );
+  function authorized(user) {
+    return Boolean(user && user.emailVerified && typeof user.email === "string" &&
+      /^[^@\s]+@(natur\.cuni\.cz|uochb\.cas\.cz)$/i.test(user.email));
   }
 
-  function validSeminar(seminar) {
-    return (
-      allowedSeminars.includes(seminar) &&
-      window.SEMINARS &&
-      window.SEMINARS[seminar] &&
-      Array.isArray(window.SEMINARS[seminar].presenters)
-    );
+  function presenters(seminar) {
+    const data = window.SEMINARS && window.SEMINARS[seminar];
+    return Object.hasOwn(WINDOWS, seminar) && data &&
+      Array.isArray(data.presenters) && data.presenters.length > 0
+      ? data.presenters : null;
   }
 
-  function draftKey(uid, seminar) {
-    return [
-      DRAFT_PREFIX,
-      encodeURIComponent(uid),
-      encodeURIComponent(seminar)
-    ].join(":");
+  function key(prefix, uid, seminar) {
+    return [prefix, encodeURIComponent(uid), encodeURIComponent(seminar)].join(":");
   }
 
-  function readDraft(uid, seminar) {
-    try {
-      const raw = localStorage.getItem(
-        draftKey(uid, seminar)
-      );
-
-      if (!raw) return null;
-
-      const draft = JSON.parse(raw);
-
-      if (
-        !draft ||
-        !Array.isArray(draft.presentations) ||
-        !Number.isFinite(draft.savedAt) ||
-        draft.savedAt > Date.now() + 60000 ||
-        Date.now() - draft.savedAt > MAX_DRAFT_AGE
-      ) {
-        return null;
-      }
-
-      return draft;
-    } catch (error) {
-      console.warn("Could not read saved draft.");
-      return null;
-    }
-  }
-
-  function removeDraft(uid, seminar) {
-    try {
-      localStorage.removeItem(
-        draftKey(uid, seminar)
-      );
-    } catch (error) {
-      console.warn("Could not remove saved draft.");
-    }
-  }
-
-  function collectDraft() {
-    const seminar = seminarSelect.value;
-
-    if (!validSeminar(seminar)) return null;
-
-    const names = window.SEMINARS[seminar].presenters;
-
-    if (
-      presDiv.querySelectorAll("select").length !==
-      names.length
-    ) {
-      return null;
-    }
-
-    return names.map((name, i) => ({
-      name,
-      score:
-        document.getElementById(`pres${i + 1}`)?.value || "",
-      comment:
-        document.getElementById(`comment${i + 1}`)?.value || ""
-    }));
-  }
-
-  function saveDraftFor(uid, seminar) {
-    if (
-      !uid ||
-      !validSeminar(seminar) ||
-      submitting ||
-      completedInSession.has(seminar) ||
-      seminarSelect.value !== seminar
-    ) {
-      return;
-    }
-
-    const presentations = collectDraft();
-
-    if (!presentations) return;
-
-    try {
-      localStorage.setItem(
-        draftKey(uid, seminar),
-        JSON.stringify({
-          savedAt: Date.now(),
-          presentations
-        })
-      );
-
-      storageAvailable = true;
-    } catch (error) {
-      storageAvailable = false;
-      console.warn("Could not save voting draft.");
-    }
-  }
-
-  function saveDraft() {
-    const user = auth.currentUser;
-
-    if (
-      !isAuthorized(user) ||
-      user.uid !== currentUserUid
-    ) {
-      return;
-    }
-
-    saveDraftFor(user.uid, seminarSelect.value);
-  }
-
-  function restoreDraft(seminar) {
-    const user = auth.currentUser;
-
-    if (
-      !isAuthorized(user) ||
-      user.uid !== currentUserUid ||
-      !validSeminar(seminar) ||
-      completedInSession.has(seminar)
-    ) {
-      return false;
-    }
-
-    const draft = readDraft(user.uid, seminar);
-
-    if (!draft) return false;
-
-    const names = window.SEMINARS[seminar].presenters;
-
-    if (draft.presentations.length !== names.length) {
-      return false;
-    }
-
-    for (let i = 0; i < names.length; i++) {
-      const item = draft.presentations[i];
-
-      if (!item || item.name !== names[i]) {
-        return false;
-      }
-    }
-
-    names.forEach((name, i) => {
-      const item = draft.presentations[i];
-
-      const score = document.getElementById(
-        `pres${i + 1}`
-      );
-
-      const comment = document.getElementById(
-        `comment${i + 1}`
-      );
-
-      const value = String(item.score);
-
-      if (
-        value === "" ||
-        (
-          /^[1-9]$|^10$/.test(value) &&
-          Number.isInteger(Number(value))
-        )
-      ) {
-        score.value = value;
-      }
-
-      if (typeof item.comment === "string") {
-        comment.value = item.comment.slice(0, 2000);
-      }
-    });
-
-    return true;
-  }
-
-  function formatPrague(iso) {
-    return new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/Prague",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23"
-    }).format(new Date(iso)) + " (Prague time)";
-  }
-
-  function windowState(seminar, now = Date.now()) {
-    if (!votingWindows[seminar]) {
-      return "unselected";
-    }
-
-    const [open, close] =
-      votingWindows[seminar].map(Date.parse);
-
-    if (now < open) return "upcoming";
-    if (now >= close) return "closed";
-
-    return "open";
-  }
-
-  function refreshVotingWindow() {
-    const seminar = seminarSelect.value;
-    const state = windowState(seminar);
-    const authorized = isAuthorized(auth.currentUser);
-
-    const alreadySubmitted =
-      completedInSession.has(seminar);
-
-    const enabled =
-      authorized &&
-      state === "open" &&
-      !submitting &&
-      !alreadySubmitted;
-
-    submitButton.disabled = !enabled;
-
-    for (const control of presDiv.querySelectorAll(
-      "select, textarea, input"
-    )) {
-      control.disabled = !enabled;
-    }
-
-    if (submitting) {
-      status.textContent =
-        "Submitting your evaluation. Please wait.";
-    } else if (alreadySubmitted) {
-      status.textContent =
-        "Your evaluation was submitted successfully.";
-    } else if (state === "unselected") {
-      status.textContent =
-        "Select a seminar to see its voting period.";
-    } else if (state === "upcoming") {
-      status.textContent =
-        "Voting has not started yet. Opens " +
-        formatPrague(votingWindows[seminar][0]) + ".";
-    } else if (state === "closed") {
-      status.textContent =
-        "Voting is closed. Closed " +
-        formatPrague(votingWindows[seminar][1]) + ".";
-    } else {
-      status.textContent =
-        "Voting is open until " +
-        formatPrague(votingWindows[seminar][1]) + ".";
-    }
-
-    return enabled;
-  }
-
-  function renderPresentations(seminar) {
-    presDiv.replaceChildren();
-
-    if (!validSeminar(seminar)) {
-      refreshVotingWindow();
-      return;
-    }
-
-    const names = window.SEMINARS[seminar].presenters;
-
-    names.forEach((name, i) => {
-      const block = document.createElement("div");
-      block.className = "presentation-block";
-
-      const heading = document.createElement("h3");
-      heading.textContent = name;
-      block.appendChild(heading);
-
-      const scoreLabel = document.createElement("label");
-      scoreLabel.htmlFor = `pres${i + 1}`;
-      scoreLabel.textContent =
-        "Score (1 = worst, 10 = best)";
-      block.appendChild(scoreLabel);
-
-      const scoreSelect = document.createElement("select");
-      scoreSelect.id = `pres${i + 1}`;
-      scoreSelect.required = true;
-
-      scoreSelect.add(
-        new Option("-- Select --", "")
-      );
-
-      for (let score = 1; score <= 10; score++) {
-        scoreSelect.add(
-          new Option(String(score), String(score))
-        );
-      }
-
-      scoreSelect.addEventListener(
-        "change",
-        saveDraft
-      );
-
-      block.appendChild(scoreSelect);
-
-      const commentLabel = document.createElement("label");
-      commentLabel.htmlFor = `comment${i + 1}`;
-      commentLabel.textContent =
-        "Comment (optional)";
-      block.appendChild(commentLabel);
-
-      const textarea = document.createElement("textarea");
-      textarea.id = `comment${i + 1}`;
-      textarea.rows = 3;
-      textarea.maxLength = 2000;
-
-      textarea.addEventListener(
-        "input",
-        saveDraft
-      );
-
-      block.appendChild(textarea);
-      presDiv.appendChild(block);
-    });
-
-    const restored = restoreDraft(seminar);
-
-    if (restored) {
-      message.textContent =
-        "Your saved evaluation draft has been restored.";
-      message.className = "success";
-    }
-
-    refreshVotingWindow();
-  }
-
-  function updateVotingAccess() {
-    const user = auth.currentUser;
-    const nextUid = user?.uid || null;
-
-    if (currentUserUid !== nextUid) {
-      // Preserve the previous account's draft
-      // before clearing the form.
-      if (currentUserUid && !submitting) {
-        saveDraftFor(
-          currentUserUid,
-          seminarSelect.value
-        );
-      }
-
-      presDiv.replaceChildren();
-      seminarSelect.value = "";
-      message.textContent = "";
-
-      currentUserUid = nextUid;
-    }
-
-    const authorized = isAuthorized(user);
-
-    form.style.display =
-      authorized ? "block" : "none";
-
-    if (!authorized) {
-      presDiv.replaceChildren();
-      seminarSelect.value = "";
-    } else if (
-      validSeminar(seminarSelect.value) &&
-      !presDiv.children.length
-    ) {
-      renderPresentations(seminarSelect.value);
-    }
-
-    refreshVotingWindow();
-  }
-
-  seminarSelect.addEventListener("change", () => {
-    if (submitting) return;
-
-    message.textContent = "";
-    renderPresentations(seminarSelect.value);
-  });
-
-  window.updateVotingAccess = updateVotingAccess;
-
-  auth.onAuthStateChanged(updateVotingAccess);
-
-  setInterval(refreshVotingWindow, 30000);
-
-  document.addEventListener(
-    "visibilitychange",
-    () => {
-      if (document.visibilityState === "hidden") {
-        saveDraft();
-      }
-
-      refreshVotingWindow();
-    }
-  );
-
-  window.addEventListener("pagehide", saveDraft);
-
-  window.addEventListener("offline", () => {
-    if (!submitting) {
-      setMessage(
-        "You are offline. Your evaluation draft is kept " +
-        "on this device where browser storage is available.",
-        true
-      );
-    }
-  });
-
-  function setMessage(text, error = false) {
+  function notify(text, error) {
     message.textContent = text;
     message.className = error ? "error" : "success";
   }
 
-  function finishSubmission(uid, seminar) {
-    completedInSession.add(seminar);
-    removeDraft(uid, seminar);
-
-    if (
-      auth.currentUser?.uid === uid &&
-      seminarSelect.value === seminar
-    ) {
-      form.reset();
-      presDiv.replaceChildren();
-    }
-
-    setMessage(
-      "Evaluation submitted successfully. Thank you!"
-    );
+  function draftValues() {
+    const names = presenters(renderedSeminar);
+    if (!names || presentationsDiv.querySelectorAll("select").length !== names.length) return null;
+    return names.map((name, i) => ({
+      name,
+      score: document.getElementById(`pres${i + 1}`).value,
+      comment: document.getElementById(`comment${i + 1}`).value
+    }));
   }
 
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
+  function saveDraft() {
+    if (!renderedUid || !renderedSeminar || completed.has(`${renderedUid}:${renderedSeminar}`)) return;
+    const values = draftValues();
+    if (!values) return;
+    try {
+      localStorage.setItem(key(PREFIX, renderedUid, renderedSeminar), JSON.stringify({
+        savedAt: Date.now(), presentations: values
+      }));
+      storageWarning = false;
+    } catch (error) {
+      storageWarning = true;
+      console.warn("Draft storage unavailable", error);
+      if (!busy) notify("Warning: this browser cannot save your draft. Do not close this page.", true);
+    }
+  }
 
-    if (submitting) return;
+  function readDraft(uid, seminar) {
+    try {
+      const raw = localStorage.getItem(key(PREFIX, uid, seminar)) ||
+        localStorage.getItem(key(LEGACY_PREFIX, uid, seminar));
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.presentations) ||
+          !Number.isFinite(data.savedAt) || data.savedAt > Date.now() + 60000 ||
+          Date.now() - data.savedAt > DRAFT_MAX_AGE) return null;
+      const names = presenters(seminar);
+      if (!names || data.presentations.length !== names.length ||
+          !names.every((name, i) => data.presentations[i]?.name === name)) return null;
+      return data.presentations;
+    } catch (error) {
+      console.warn("Cannot restore draft", error);
+      return null;
+    }
+  }
 
+  function clearDraft(uid, seminar) {
+    for (const prefix of [PREFIX, LEGACY_PREFIX]) {
+      try { localStorage.removeItem(key(prefix, uid, seminar)); }
+      catch (error) { console.warn("Cannot clear draft", error); }
+    }
+  }
+
+  function windowState(seminar) {
+    if (!presenters(seminar)) return "unselected";
+    const [start, end] = WINDOWS[seminar].map(Date.parse);
+    const now = Date.now();
+    return now < start ? "upcoming" : now >= end ? "closed" : "open";
+  }
+
+  function pragueTime(iso) {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Prague", day: "numeric", month: "long", year: "numeric",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+    }).format(new Date(iso));
+  }
+
+  function refresh() {
     const user = auth.currentUser;
     const seminar = seminarSelect.value;
+    const state = windowState(seminar);
+    const finished = user && completed.has(`${user.uid}:${seminar}`);
+    const enabled = authorized(user) && state === "open" && !busy && !pending && !finished;
+    submitButton.disabled = !enabled;
+    seminarSelect.disabled = busy || pending;
+    presentationsDiv.querySelectorAll("select, textarea").forEach(el => { el.disabled = !enabled; });
 
-    if (!isAuthorized(user)) {
-      setMessage(
-        "Please sign in with a verified institutional email.",
-        true
-      );
+    if (pending) status.textContent = "Submission pending: waiting for server confirmation. Do not submit again.";
+    else if (busy) status.textContent = "Submitting evaluation. Please wait.";
+    else if (finished) status.textContent = "Your evaluation was submitted successfully.";
+    else if (state === "unselected") status.textContent = "Select a seminar.";
+    else if (state === "upcoming") status.textContent = `Voting opens ${pragueTime(WINDOWS[seminar][0])} (Prague time).`;
+    else if (state === "closed") status.textContent = `Voting closed ${pragueTime(WINDOWS[seminar][1])} (Prague time).`;
+    else status.textContent = `Voting closes ${pragueTime(WINDOWS[seminar][1])} (Prague time).`;
+    return enabled;
+  }
+
+  function render(seminar) {
+    presentationsDiv.replaceChildren();
+    renderedSeminar = seminar;
+    renderedUid = authorized(auth.currentUser) ? auth.currentUser.uid : "";
+    const names = presenters(seminar);
+    if (!names || !renderedUid) { refresh(); return; }
+
+    names.forEach((name, i) => {
+      const block = document.createElement("div");
+      block.className = "presentation-block";
+      const heading = document.createElement("h3");
+      heading.textContent = name;
+      block.append(heading);
+      const label = document.createElement("label");
+      label.htmlFor = `pres${i + 1}`;
+      label.textContent = "Score (1 = worst, 10 = best)";
+      const select = document.createElement("select");
+      select.id = label.htmlFor;
+      select.required = true;
+      select.add(new Option("-- Select --", ""));
+      for (let score = 1; score <= 10; score++) select.add(new Option(String(score), String(score)));
+      select.addEventListener("change", saveDraft);
+      const commentLabel = document.createElement("label");
+      commentLabel.htmlFor = `comment${i + 1}`;
+      commentLabel.textContent = "Comment (optional)";
+      const textarea = document.createElement("textarea");
+      textarea.id = commentLabel.htmlFor;
+      textarea.rows = 3;
+      textarea.maxLength = 2000;
+      textarea.addEventListener("input", saveDraft);
+      block.append(label, select, commentLabel, textarea);
+      presentationsDiv.append(block);
+    });
+
+    const draft = readDraft(renderedUid, seminar);
+    if (draft) {
+      draft.forEach((item, i) => {
+        const score = String(item.score ?? "");
+        if (score === "" || /^(?:[1-9]|10)$/.test(score))
+          document.getElementById(`pres${i + 1}`).value = score;
+        if (typeof item.comment === "string")
+          document.getElementById(`comment${i + 1}`).value = item.comment.slice(0, 2000);
+      });
+      notify("Your saved evaluation draft has been restored.", false);
+    }
+    refresh();
+  }
+
+  function updateVotingAccess() {
+    if (busy || pending) return;
+    const user = auth.currentUser;
+    const allowed = authorized(user);
+    const nextUid = allowed ? user.uid : "";
+    if (nextUid !== renderedUid) {
+      saveDraft();
+      renderedUid = "";
+      renderedSeminar = "";
+      presentationsDiv.replaceChildren();
+      seminarSelect.value = "";
+      message.textContent = "";
+    }
+    form.style.display = allowed ? "block" : "none";
+    if (allowed && seminarSelect.value && !presentationsDiv.children.length)
+      render(seminarSelect.value);
+    refresh();
+  }
+
+  window.updateVotingAccess = updateVotingAccess;
+
+  seminarSelect.addEventListener("change", () => {
+    if (busy || pending) return;
+    saveDraft(); // Saves the OLD rendered seminar before replacing its controls.
+    message.textContent = "";
+    render(seminarSelect.value);
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") saveDraft();
+    refresh();
+  });
+  window.addEventListener("pagehide", saveDraft);
+  window.addEventListener("offline", () => {
+    saveDraft();
+    if (!busy && !pending) notify("You are offline. Your draft remains on this device if browser storage is available.", true);
+  });
+  setInterval(refresh, 30000);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (busy || pending) return;
+    const user = auth.currentUser;
+    const seminar = seminarSelect.value;
+    if (!authorized(user) || !presenters(seminar) || !refresh()) {
+      notify("Voting is not available. Check your account and the voting period.", true);
       return;
     }
-
-    if (!validSeminar(seminar)) {
-      setMessage(
-        "Please select a valid seminar.",
-        true
-      );
+    const names = presenters(seminar);
+    const values = draftValues();
+    if (!values || values.length !== names.length) {
+      notify("Could not read the evaluation form. Please reload and restore your draft.", true);
       return;
     }
-
-    if (!refreshVotingWindow()) {
-      setMessage(
-        "Voting is not available for this seminar.",
-        true
-      );
-      return;
-    }
-
-    const names = window.SEMINARS[seminar].presenters;
     const presentations = [];
-
     for (let i = 0; i < names.length; i++) {
-      const scoreValue = document.getElementById(
-        `pres${i + 1}`
-      ).value;
-
-      const score = Number(scoreValue);
-
-      const comment = document.getElementById(
-        `comment${i + 1}`
-      ).value.trim();
-
-      if (
-        scoreValue === "" ||
-        !Number.isInteger(score) ||
-        score < 1 ||
-        score > 10
-      ) {
-        setMessage(
-          "Please score every presentation from 1 to 10.",
-          true
-        );
+      const scoreText = values[i].score;
+      const score = Number(scoreText);
+      if (!scoreText || !Number.isInteger(score) || score < 1 || score > 10) {
+        notify("Please score every presentation from 1 to 10.", true);
         return;
       }
-
-      presentations.push({
-        name: names[i],
-        score,
-        comment
-      });
+      presentations.push({ name: names[i], score, comment: values[i].comment.trim() });
     }
-
-    // Save before attempting a network operation.
     saveDraft();
-
+    if (storageWarning) {
+      notify("Your browser could not save the draft. Please fix browser storage before submitting.", true);
+      return;
+    }
     if (!navigator.onLine) {
-      setMessage(
-        "You are offline. Connect to the internet " +
-        "before submitting your evaluation.",
-        true
-      );
+      notify("You are offline. Connect to the internet before submitting.", true);
       return;
     }
 
     const uid = user.uid;
-    const voteId =
-      `Seminar_${seminar.split(" ")[1]}_${uid}`;
-
-    const docRef = db.collection(
-      "votes_2026_2027"
-    ).doc(voteId);
-
-    submitting = true;
-    refreshVotingWindow();
-
-    setMessage(
-      "Submitting your evaluation. Please wait."
-    );
-
+    const docId = `Seminar_${seminar.split(" ")[1]}_${uid}`;
+    busy = true;
+    refresh();
+    notify("Submitting evaluation. Waiting for server confirmation...", false);
+    const ref = db.collection("votes_2026_2027").doc(docId);
     try {
-      await docRef.set({
-        participant: user.email,
-        uid,
-        seminar,
-        presentations,
-        timestamp:
-          firebase.firestore.FieldValue.serverTimestamp()
+      // Firestore may queue this write while offline. Do not start another write.
+      pending = true;
+      await ref.set({
+        participant: user.email, uid, seminar, presentations,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
-
-      // The write promise resolved successfully.
-      finishSubmission(uid, seminar);
-
+      completed.add(`${uid}:${seminar}`);
+      clearDraft(uid, seminar);
+      if (auth.currentUser?.uid === uid && seminarSelect.value === seminar) {
+        presentationsDiv.replaceChildren();
+        renderedSeminar = "";
+      }
+      notify("Evaluation submitted successfully. Thank you!", false);
     } catch (error) {
-      console.error(
-        "Voting submission failed:",
-        error.code || error.message
-      );
-
-      if (
-        error.code === "permission-denied" ||
-        error.code === "already-exists"
-      ) {
-        setMessage(
-          "The server rejected this submission. " +
-          "You may have already voted, or voting may " +
-          "be closed. Your draft has been preserved. " +
-          "Please contact the organizer if necessary.",
-          true
-        );
+      console.error("Submission error", error.code || error.message);
+      if (error.code === "permission-denied" || error.code === "already-exists") {
+        notify("The server rejected this submission. You may already have voted, voting may have closed, or your account may be ineligible. Your draft remains saved. Contact the organizer if needed.", true);
       } else {
-        setMessage(
-          "Submission could not be confirmed. " +
-          "Your draft has been preserved where browser " +
-          "storage is available. Check your connection " +
-          "before trying again. If you already submitted, " +
-          "the server will not allow overwriting your vote.",
-          true
-        );
+        notify("Submission could not be confirmed. Your draft remains saved. Do not assume the vote was received; contact the organizer if the problem persists.", true);
       }
-
     } finally {
-      submitting = false;
-      refreshVotingWindow();
-
-      if (!storageAvailable) {
-        console.warn(
-          "Browser storage is unavailable; " +
-          "draft recovery is not guaranteed."
-        );
-      }
+      pending = false;
+      busy = false;
+      updateVotingAccess();
+      refresh();
     }
   });
 })();
