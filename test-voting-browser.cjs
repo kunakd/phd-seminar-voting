@@ -3,7 +3,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
-const { chromium } = require("playwright");
+const { chromium, firefox, webkit } = require("playwright");
+const browserName = process.env.TEST_BROWSER || "chromium";
+const engines = { chromium, firefox, webkit };
+if (!Object.hasOwn(engines, browserName)) throw new Error(`Unsupported TEST_BROWSER: ${browserName}`);
 
 const source = path.resolve(process.cwd(), "voting-2026-2027.js");
 if (!fs.existsSync(source)) throw new Error("Missing voting-2026-2027.js in repository root");
@@ -41,7 +44,7 @@ const mock = () => {
 (async () => {
   if (process.env.FIRESTORE_EMULATOR_HOST || process.env.GOOGLE_APPLICATION_CREDENTIALS) throw Error("This browser test must not use Firebase credentials or emulator");
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
-  const browser = await chromium.launch({ headless: true });
+  const browser = await engines[browserName].launch({ headless: true });
   const context = await browser.newContext();
   await context.addInitScript(mock);
   const url = `http://127.0.0.1:${server.address().port}/`;
@@ -93,7 +96,7 @@ const mock = () => {
     assert.equal(await page.locator('#voteForm button[type="submit"]').isDisabled(), true);
     console.log("PASS 6: confirmed submission clears draft and disables resubmission");
 
-    console.log("ALL 6 BROWSER TESTS PASSED (mock Firebase, real voting JS)");
+    console.log(`ALL 6 BROWSER TESTS PASSED (${browserName}, mock Firebase, real voting JS)`);
   } finally {
     await context.close(); await browser.close(); await new Promise(resolve => server.close(resolve));
   }
