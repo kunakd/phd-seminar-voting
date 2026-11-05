@@ -28,12 +28,18 @@ footer { background: #fff; text-align: center; padding: 25px 15px; font-size: 14
 footer a { color: #000; text-decoration: none; overflow-wrap: anywhere; }
 @media (max-width: 600px) { body { margin: 0 auto; padding: 14px; } header img { height: 90px; } header h1 { font-size: 24px; } #authSection { padding: 14px; } }
 </style>
+<link rel="stylesheet" href="department-theme.css">
 </head>
 <body>
 <header>
   <img src="logo.jpg" alt="Department Logo">
   <h1>PhD Seminar Evaluation</h1>
+  <p class="academic-year">Academic year 2026/2027</p>
 </header>
+<div id="signedInBar" class="signed-in-bar" hidden aria-label="Signed-in account">
+  <div class="signed-in-bar__identity"><span class="signed-in-bar__dot" aria-hidden="true"></span><span><span class="signed-in-bar__label">Signed in as</span><strong id="signedInEmail"></strong></span></div>
+  <button type="button" id="signOutBtn" style="display:none;">Sign out</button>
+</div>
 <section id="authSection">
   <h2>Sign in to vote</h2>
   <p>Please use your verified institutional email address (@natur.cuni.cz or @uochb.cas.cz).</p>
@@ -47,7 +53,6 @@ footer a { color: #000; text-decoration: none; overflow-wrap: anywhere; }
     <button type="button" id="resetPasswordBtn">Forgot password?</button>
     <button type="button" id="verifyEmailBtn" style="display:none;">Resend verification email</button>
     <button type="button" id="checkVerificationBtn" style="display:none;">Check verification</button>
-    <button type="button" id="signOutBtn" style="display:none;">Sign out</button>
   </div>
   <p id="authStatus" role="status" aria-live="polite"></p>
 </section>
@@ -81,11 +86,32 @@ firebase.initializeApp(firebaseConfig);
 </script>
 <script src="voting-2026-2027.js"></script>
 <script src="auth-2026-2027.js"></script>
-<footer>
-  <img src="logo.jpg" alt="PřF UK Logo" style="height:55px;margin-bottom:10px;">
-  <p>© 2026 Department of Organic Chemistry, Faculty of Science at Charles University in Prague</p>
-  <p>Hlavova 2030/8, Praha 2, 128 00 | Seminar Contacts: jiri.misek@natur.cuni.cz; kunakd@natur.cuni.cz</p>
-  <p><a href="https://orgchem.natur.cuni.cz/" target="_blank" rel="noopener noreferrer">https://orgchem.natur.cuni.cz</a></p>
+<script>
+/* Visual account display only; authentication and voting logic remain unchanged. */
+(function () {
+  const bar = document.getElementById('signedInBar');
+  const section = document.getElementById('authSection');
+  const email = document.getElementById('signedInEmail');
+  firebase.auth().onAuthStateChanged(function (user) {
+    const signedIn = Boolean(user);
+    const verified = signedIn && user.emailVerified && /^[^@\s]+@(natur\.cuni\.cz|uochb\.cas\.cz)$/i.test(user.email || '');
+    bar.hidden = !signedIn;
+    section.hidden = Boolean(verified);
+    section.classList.toggle('auth-section--signed-in', signedIn);
+    email.textContent = signedIn ? (user.email || 'Account') : '';
+  });
+})();
+</script>
+
+
+<footer class="site-footer" aria-label="Department information and contacts">
+  <div class="site-footer__brand"><img src="logo.jpg" alt="Faculty of Science, Charles University – Department of Organic Chemistry"><p>Department of Organic Chemistry · Charles University</p></div>
+  <div class="site-footer__grid">
+    <section class="site-footer__item" aria-label="Department address"><h2>Department address</h2><p>Hlavova 2030/8<br>128 00 Praha 2, Czech Republic</p><p><a href="https://orgchem.natur.cuni.cz/" target="_blank" rel="noopener noreferrer">orgchem.natur.cuni.cz</a></p></section>
+    <section class="site-footer__item" aria-label="Seminar contacts"><h2>Seminar organization</h2><p><span class="site-footer__person">Jiří Míšek</span> · Head of PhD seminars<br><a href="mailto:jiri.misek@natur.cuni.cz">jiri.misek@natur.cuni.cz</a></p><p><span class="site-footer__person">Radek Staník</span> · Seminar coordinator<br><a href="mailto:radek.stanik@natur.cuni.cz">radek.stanik@natur.cuni.cz</a></p></section>
+    <section class="site-footer__item" aria-label="Voting support"><h2>Voting system · technical support</h2><p><span class="site-footer__person">Dominik Kunák</span> · Voting System Administrator<br><a href="mailto:kunakd@natur.cuni.cz">kunakd@natur.cuni.cz</a></p></section>
+    <section class="site-footer__item" aria-label="Quick links"><h2>Quick links</h2><p><a href="index.html">Voting</a> · <a href="results.html">Evaluation results</a> · <a href="feedback.html">Presenter feedback</a></p></section>
+  </div><p class="site-footer__copyright">© 2026 Department of Organic Chemistry, Faculty of Science, Charles University</p>
 </footer>
 </body>
 </html>
